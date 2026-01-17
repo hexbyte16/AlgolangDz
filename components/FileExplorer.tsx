@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileNode } from '../types';
-import { Folder, FileCode, ChevronRight, ChevronDown, Trash2, FolderPlus, FilePlus, X, Check } from 'lucide-react';
+import { Folder, FileCode, ChevronRight, ChevronDown, Trash2, FolderPlus, FilePlus, X, Check, ChevronLeft } from 'lucide-react';
+import { TRANSLATIONS } from '../constants';
 
 interface FileExplorerProps {
   files: FileNode[];
@@ -10,6 +11,7 @@ interface FileExplorerProps {
   onCreateFolder: (name: string, parentId: string) => void;
   onDelete: (id: string) => void;
   isDarkMode: boolean;
+  lang: 'en' | 'ar';
 }
 
 export const FileExplorer: React.FC<FileExplorerProps> = ({
@@ -19,7 +21,8 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   onCreateFile,
   onCreateFolder,
   onDelete,
-  isDarkMode
+  isDarkMode,
+  lang
 }) => {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root', 'src']));
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -27,6 +30,8 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   // Creation State
   const [creationState, setCreationState] = useState<{isOpen: boolean, type: 'file' | 'folder', parentId: string} | null>(null);
   const [newItemName, setNewItemName] = useState('');
+
+  const t = TRANSLATIONS[lang];
 
   const toggleFolder = (id: string) => {
     setExpandedFolders(prev => {
@@ -77,6 +82,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
     
     // If creating new item in this folder, show input field
     const isCreatingHere = creationState?.isOpen && creationState.parentId === parentId;
+    const ChevronCollapsed = lang === 'ar' ? ChevronLeft : ChevronRight;
 
     return (
         <>
@@ -89,13 +95,13 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
                     <div key={node.id}>
                     <div 
                         className={`
-                        flex items-center gap-2 py-1.5 px-3 cursor-pointer text-sm select-none transition-colors border-l-2
+                        flex items-center gap-2 py-1.5 px-3 cursor-pointer text-sm select-none transition-colors border-s-2
                         ${isSelected 
                             ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-500' : 'bg-emerald-50 border-emerald-600') 
                             : 'border-transparent ' + (isDarkMode ? 'hover:bg-emerald-900/20' : 'hover:bg-slate-100')}
                         ${isActive ? (isDarkMode ? 'text-emerald-400 font-bold' : 'text-emerald-700 font-bold') : (isDarkMode ? 'text-slate-300' : 'text-slate-700')}
                         `}
-                        style={{ paddingLeft: `${depth * 12 + 12}px` }}
+                        style={{ paddingInlineStart: `${depth * 12 + 12}px` }}
                         onClick={(e) => {
                             e.stopPropagation();
                             setSelectedId(node.id);
@@ -106,7 +112,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
                         {node.type === 'folder' ? (
                         <>
                             <span className="opacity-50">
-                                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                {isExpanded ? <ChevronDown size={14} /> : <ChevronCollapsed size={14} />}
                             </span>
                             <Folder size={16} className={isDarkMode ? "text-amber-400" : "text-amber-500"} />
                         </>
@@ -117,7 +123,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
                     </div>
                     
                     {node.type === 'folder' && isExpanded && (
-                        <div className={`border-l ml-3 ${isDarkMode ? 'border-emerald-900/30' : 'border-slate-200'}`}>
+                        <div className={`border-s ms-3 ${isDarkMode ? 'border-emerald-900/30' : 'border-slate-200'}`}>
                             {renderTree(node.id, depth + 1)}
                         </div>
                     )}
@@ -128,8 +134,8 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
             {/* Inline Creation Input */}
             {isCreatingHere && (
                  <div 
-                    className={`flex items-center gap-2 py-1.5 px-2 text-sm ml-3 border-l ${isDarkMode ? 'border-emerald-900/30' : 'border-slate-200'}`}
-                    style={{ paddingLeft: `${depth * 12 + 12}px` }}
+                    className={`flex items-center gap-2 py-1.5 px-2 text-sm ms-3 border-s ${isDarkMode ? 'border-emerald-900/30' : 'border-slate-200'}`}
+                    style={{ paddingInlineStart: `${depth * 12 + 12}px` }}
                  >
                      {creationState.type === 'folder' ? 
                         <Folder size={16} className="text-amber-400" /> : 
@@ -146,7 +152,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
                                 if (e.key === 'Escape') setCreationState(null);
                             }}
                             className={`w-full min-w-0 bg-transparent border rounded px-1 py-0.5 outline-none text-xs ${isDarkMode ? 'border-emerald-500 text-white' : 'border-blue-500 text-black'}`}
-                            placeholder="Name..."
+                            placeholder={t.enterName}
                         />
                         <button onClick={submitCreation} className="text-green-500 hover:text-green-400"><Check size={14}/></button>
                         <button onClick={() => setCreationState(null)} className="text-red-500 hover:text-red-400"><X size={14}/></button>
@@ -160,19 +166,19 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   return (
     <div className={`flex flex-col h-full ${isDarkMode ? 'bg-[#0a1f13]' : 'bg-slate-50'}`}>
       <div className={`flex items-center justify-between p-3 border-b ${isDarkMode ? 'border-emerald-900/30 bg-[#0f281a]' : 'border-slate-200 bg-white'}`}>
-        <span className="text-xs font-bold uppercase tracking-wider opacity-70 text-emerald-600">Project</span>
+        <span className="text-xs font-bold uppercase tracking-wider opacity-70 text-emerald-600">{t.project}</span>
         <div className="flex gap-1">
           <button 
             onClick={() => startCreation('file')} 
             className={`p-1.5 rounded transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 hover:text-emerald-400 text-slate-400' : 'hover:bg-emerald-100 hover:text-emerald-700 text-slate-500'}`} 
-            title="New File"
+            title={t.newFile}
           >
             <FilePlus size={16} />
           </button>
           <button 
             onClick={() => startCreation('folder')} 
             className={`p-1.5 rounded transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 hover:text-emerald-400 text-slate-400' : 'hover:bg-emerald-100 hover:text-emerald-700 text-slate-500'}`} 
-            title="New Folder"
+            title={t.newFolder}
           >
             <FolderPlus size={16} />
           </button>
@@ -180,7 +186,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
             onClick={() => selectedId && selectedId !== 'root' && onDelete(selectedId)} 
             className="p-1.5 hover:bg-red-900/50 hover:text-red-500 text-slate-400 rounded disabled:opacity-30 transition-colors" 
             disabled={!selectedId || selectedId === 'root'}
-            title="Delete"
+            title={t.delete}
           >
             <Trash2 size={16} />
           </button>

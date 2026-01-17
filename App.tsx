@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Trash2, AlertTriangle, Terminal, Pause, StepForward, Bug, Sun, Moon, Home, FolderOpen, Book, RotateCcw } from 'lucide-react';
+import { Play, Trash2, AlertTriangle, Terminal, Pause, StepForward, Bug, Sun, Moon, Home, FolderOpen, Book, RotateCcw, Languages } from 'lucide-react';
 import { Lexer } from './services/algo/lexer';
 import { Parser } from './services/algo/parser';
 import { Interpreter } from './services/algo/interpreter';
-import { INITIAL_FILES } from './constants';
+import { INITIAL_FILES, TRANSLATIONS } from './constants';
 import { CodeEditor } from './components/CodeEditor';
 import { InterpreterEvent, RuntimeValue, ViewState, FileNode } from './types';
 import { Landing } from './components/Landing';
@@ -14,6 +14,7 @@ const App: React.FC = () => {
   // --- GLOBAL STATE ---
   const [view, setView] = useState<ViewState>('home');
   const [isDarkMode, setIsDarkMode] = useState(false); // Default to Light Mode
+  const [lang, setLang] = useState<'en' | 'ar'>('en');
   
   // --- FILE SYSTEM STATE ---
   const [files, setFiles] = useState<FileNode[]>(INITIAL_FILES);
@@ -40,7 +41,15 @@ const App: React.FC = () => {
   const consoleBottomRef = useRef<HTMLDivElement>(null);
   const generatorRef = useRef<Generator<InterpreterEvent, void, any> | null>(null);
 
+  const t = TRANSLATIONS[lang];
+
   // --- EFFECTS ---
+  
+  // Sync Document Attributes
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [lang]);
 
   // Sync Code changes to File System
   const handleCodeChange = (newCode: string) => {
@@ -224,52 +233,72 @@ const App: React.FC = () => {
 
   // --- RENDER HELPERS ---
 
+  const rootClass = `h-screen flex flex-col ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'} ${lang === 'ar' ? 'font-ar' : ''}`;
+  const navClass = `px-6 py-4 flex justify-between items-center ${isDarkMode ? 'bg-[#0f281a]/80 backdrop-blur-md' : 'bg-white/80 backdrop-blur-md shadow-sm'} sticky top-0 z-50`;
+
   if (view === 'home') {
       return (
-        <div className={`h-screen flex flex-col ${isDarkMode ? 'bg-[#0a1f13]' : 'bg-slate-50'}`}>
-            <nav className={`px-6 py-4 flex justify-between items-center ${isDarkMode ? 'bg-[#0f281a]/80 backdrop-blur-md' : 'bg-white/80 backdrop-blur-md shadow-sm'} sticky top-0 z-50`}>
+        <div className={rootClass} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+            <nav className={navClass}>
                 <div className="flex items-center gap-2">
                     <div className="bg-emerald-600 rounded-lg p-1">
                         <Terminal className="text-white" size={20} />
                     </div>
                     <span className={`font-bold text-xl tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>AlgoLang <span className="text-emerald-500">DZ</span></span>
                 </div>
-                <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-emerald-500/20 transition-colors">
-                    {isDarkMode ? <Sun className="text-amber-400" /> : <Moon className="text-emerald-700" />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
+                        className={`p-2 rounded-lg font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-400' : 'hover:bg-emerald-50 text-emerald-700'}`}
+                    >
+                        <Languages size={18} />
+                        {lang === 'en' ? 'العربية' : 'English'}
+                    </button>
+                    <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-emerald-500/20 transition-colors">
+                        {isDarkMode ? <Sun className="text-amber-400" /> : <Moon className="text-emerald-700" />}
+                    </button>
+                </div>
             </nav>
-            <Landing onStart={() => setView('ide')} onDocs={() => setView('docs')} isDarkMode={isDarkMode} />
+            <Landing onStart={() => setView('ide')} onDocs={() => setView('docs')} isDarkMode={isDarkMode} lang={lang} />
         </div>
       );
   }
 
   if (view === 'docs') {
       return (
-        <div className={`h-screen flex flex-col ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
-             <Docs onBack={() => setView('home')} isDarkMode={isDarkMode} />
+        <div className={rootClass} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+             <Docs onBack={() => setView('home')} isDarkMode={isDarkMode} lang={lang} />
         </div>
       );
   }
 
   return (
-    <div className={`flex h-screen overflow-hidden ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`flex h-screen overflow-hidden ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'} ${lang === 'ar' ? 'font-ar' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       
       {/* Activity Bar */}
-      <div className={`w-14 flex flex-col items-center py-4 gap-6 border-r z-20 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-sm'}`}>
-        <button onClick={() => setView('home')} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'hover:bg-emerald-500/20 text-emerald-500' : 'hover:bg-emerald-50 text-emerald-600'}`} title="Home">
+      <div className={`w-14 flex flex-col items-center py-4 gap-6 border-e z-20 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <button onClick={() => setView('home')} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'hover:bg-emerald-500/20 text-emerald-500' : 'hover:bg-emerald-50 text-emerald-600'}`} title={t.home}>
             <Home size={22} />
         </button>
         
         <div className={`w-8 h-[1px] ${isDarkMode ? 'bg-emerald-900/50' : 'bg-slate-200'}`} />
         
-        <button className={`p-2 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-lg`} title="Project">
+        <button className={`p-2 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-lg`} title={t.project}>
             <FolderOpen size={22} />
         </button>
-        <button onClick={() => setView('docs')} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'hover:bg-emerald-500/20 hover:text-emerald-500 text-slate-400' : 'hover:bg-emerald-50 hover:text-emerald-600 text-slate-400'}`} title="Docs">
+        <button onClick={() => setView('docs')} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'hover:bg-emerald-500/20 hover:text-emerald-500 text-slate-400' : 'hover:bg-emerald-50 hover:text-emerald-600 text-slate-400'}`} title={t.docs}>
             <Book size={22} />
         </button>
         
         <div className="flex-1" />
+
+         <button 
+            onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
+            className={`p-2 rounded-xl font-bold flex items-center justify-center transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-400' : 'hover:bg-emerald-50 text-emerald-700'}`}
+            title="Switch Language"
+        >
+            <span className="text-xs">{lang === 'en' ? 'AR' : 'EN'}</span>
+        </button>
         
         <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-xl hover:bg-slate-700/20 transition-colors" title="Toggle Theme">
             {isDarkMode ? <Sun size={22} className="text-amber-400" /> : <Moon size={22} className="text-emerald-700" />}
@@ -277,7 +306,7 @@ const App: React.FC = () => {
       </div>
 
       {/* Sidebar: File Explorer */}
-      <div className={`w-64 flex flex-col border-r transition-colors ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
+      <div className={`w-64 flex flex-col border-e transition-colors ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
          <FileExplorer 
             files={files} 
             activeFileId={activeFileId}
@@ -286,6 +315,7 @@ const App: React.FC = () => {
             onCreateFolder={createFolder}
             onDelete={deleteItem}
             isDarkMode={isDarkMode}
+            lang={lang}
          />
       </div>
 
@@ -306,19 +336,19 @@ const App: React.FC = () => {
                          {isPaused ? (
                              <>
                                 <button onClick={stepOver} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white rounded-md font-medium text-sm transition-colors shadow-sm">
-                                    <StepForward size={16} /> Step
+                                    <StepForward size={16} /> {t.step}
                                 </button>
                                 <button onClick={resumeExecution} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-medium text-sm transition-colors shadow-sm">
-                                    <Play size={16} fill="currentColor" /> Resume
+                                    <Play size={16} fill="currentColor" /> {t.resume}
                                 </button>
                              </>
                          ) : (
                              <button onClick={() => setIsPaused(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white rounded-md font-medium text-sm transition-colors shadow-sm">
-                                <Pause size={16} fill="currentColor" /> Pause
+                                <Pause size={16} fill="currentColor" /> {t.pause}
                              </button>
                          )}
                          <button onClick={stopExecution} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-md font-medium text-sm transition-colors shadow-sm">
-                            <Trash2 size={16} /> Stop
+                            <Trash2 size={16} /> {t.stop}
                          </button>
                     </>
                 ) : (
@@ -332,8 +362,8 @@ const App: React.FC = () => {
                                 : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-emerald-500/25'}
                         `}
                     >
-                        <Play size={16} fill="currentColor" /> 
-                        RUN CODE
+                        <Play size={16} fill="currentColor" className={lang === 'ar' ? 'rotate-180' : ''} /> 
+                        {t.run}
                     </button>
                 )}
             </div>
@@ -343,7 +373,7 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col lg:flex-row min-h-0">
             
             {/* Editor */}
-            <div className={`flex-[2] relative min-h-0 border-r ${isDarkMode ? 'border-emerald-900/30' : 'border-slate-200'}`}>
+            <div className={`flex-[2] relative min-h-0 border-e ${isDarkMode ? 'border-emerald-900/30' : 'border-slate-200'}`} dir="ltr">
                 {activeFileId ? (
                     <CodeEditor
                         value={code}
@@ -354,11 +384,11 @@ const App: React.FC = () => {
                         isDarkMode={isDarkMode}
                     />
                 ) : (
-                    <div className={`flex flex-col items-center justify-center h-full ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>
+                    <div className={`flex flex-col items-center justify-center h-full ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                         <div className="bg-emerald-500/10 p-4 rounded-full mb-4">
                              <RotateCcw size={32} className="text-emerald-500 opacity-50" />
                         </div>
-                        <p>Select a file to start coding</p>
+                        <p>{t.noFile}</p>
                     </div>
                 )}
             </div>
@@ -370,18 +400,19 @@ const App: React.FC = () => {
                 <div 
                     className={`flex-1 flex flex-col cursor-text ${isDarkMode ? 'bg-[#05110a]' : 'bg-[#1e1e1e]'} `} 
                     onClick={() => inputRef.current?.focus()}
+                    dir="ltr" 
                 >
-                    <div className={`px-4 py-2 border-b flex justify-between items-center shrink-0 cursor-default ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-[#252526] border-slate-700'}`}>
+                    <div className={`px-4 py-2 border-b flex justify-between items-center shrink-0 cursor-default ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-[#252526] border-slate-700'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                         <div className="flex items-center gap-2">
                             <Terminal size={14} className="text-slate-400" />
-                            <span className="text-xs font-mono text-slate-400">Terminal</span>
+                            <span className="text-xs font-mono text-slate-400">{t.terminal}</span>
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); setOutput([]); setErrors([])}} className="text-slate-500 hover:text-red-400 transition-colors"><Trash2 size={14} /></button>
                     </div>
                     
                     <div className="flex-1 p-4 font-mono text-sm overflow-y-auto space-y-1 custom-scrollbar">
                         {output.length === 0 && errors.length === 0 && !isRunning && (
-                            <div className="text-slate-600 italic">Ready to execute...</div>
+                            <div className="text-slate-600 italic" dir={lang === 'ar' ? 'rtl' : 'ltr'}>{t.ready}</div>
                         )}
                         {output.map((line, idx) => (
                             <div key={idx} className="break-words text-slate-300">
@@ -389,7 +420,7 @@ const App: React.FC = () => {
                             </div>
                         ))}
                         {errors.map((err, idx) => (
-                            <div key={idx} className="flex items-start gap-2 text-red-400 bg-red-900/10 p-2 rounded mt-2 border border-red-900/20">
+                            <div key={idx} className="flex items-start gap-2 text-red-400 bg-red-900/10 p-2 rounded mt-2 border border-red-900/20" dir="ltr">
                                 <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                                 <span className="break-words">{err}</span>
                             </div>
@@ -410,15 +441,15 @@ const App: React.FC = () => {
                 <div className={`h-1/3 flex flex-col border-t ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-white border-slate-200'}`}>
                     <div className={`px-4 py-2 border-b flex items-center gap-2 shrink-0 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
                         <Bug size={14} className="text-amber-500" />
-                        <span className={`text-xs font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Variables</span>
+                        <span className={`text-xs font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t.variables}</span>
                     </div>
                     <div className="flex-1 p-0 overflow-y-auto custom-scrollbar">
-                        <table className="w-full text-left text-sm font-mono border-collapse">
+                        <table className="w-full text-left text-sm font-mono border-collapse" dir="ltr">
                             <thead className={`text-xs sticky top-0 ${isDarkMode ? 'bg-[#0f281a]/90 text-slate-400' : 'bg-slate-50/90 text-slate-500'}`}>
                                 <tr>
-                                    <th className="p-2 border-b border-inherit">Name</th>
-                                    <th className="p-2 border-b border-inherit">Type</th>
-                                    <th className="p-2 border-b border-inherit">Value</th>
+                                    <th className={`p-2 border-b border-inherit ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{t.name}</th>
+                                    <th className={`p-2 border-b border-inherit ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{t.type}</th>
+                                    <th className={`p-2 border-b border-inherit ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{t.value}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -430,7 +461,7 @@ const App: React.FC = () => {
                                     </tr>
                                 ))}
                                 {variables.size === 0 && (
-                                    <tr><td colSpan={3} className="p-4 text-center text-slate-400 italic">No variables in scope</td></tr>
+                                    <tr><td colSpan={3} className="p-4 text-center text-slate-400 italic">{t.noVars}</td></tr>
                                 )}
                             </tbody>
                         </table>
