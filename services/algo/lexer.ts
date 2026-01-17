@@ -114,7 +114,12 @@ export class Lexer {
           'div': TokenType.DIV,
           'and': TokenType.AND,
           'or': TokenType.OR,
-          'not': TokenType.NOT
+          'not': TokenType.NOT,
+          'function': TokenType.FUNCTION,
+          'endfunction': TokenType.ENDFUNCTION,
+          'procedure': TokenType.PROCEDURE,
+          'endprocedure': TokenType.ENDPROCEDURE,
+          'return': TokenType.RETURN
         };
 
         if (keywords[lowerId] !== undefined) {
@@ -136,7 +141,15 @@ export class Lexer {
         case '[': tokens.push({ type: TokenType.LBRACKET, value: '[', line: this.line }); this.advance(); break;
         case ']': tokens.push({ type: TokenType.RBRACKET, value: ']', line: this.line }); this.advance(); break;
         case ',': tokens.push({ type: TokenType.COMMA, value: ',', line: this.line }); this.advance(); break;
-        case ':': tokens.push({ type: TokenType.COLON, value: ':', line: this.line }); this.advance(); break;
+        case ':': 
+          this.advance();
+          if (this.peek() === '=') { // Handle := assignment
+             this.advance();
+             tokens.push({ type: TokenType.ASSIGN, value: ':=', line: this.line });
+          } else {
+             tokens.push({ type: TokenType.COLON, value: ':', line: this.line });
+          }
+          break;
         case '<':
           this.advance();
           if (this.peek() === '=') { tokens.push({ type: TokenType.LESS_EQUAL, value: '<=', line: this.line }); this.advance(); }

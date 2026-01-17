@@ -1,4 +1,4 @@
-import { Token, TokenType, ASTNode, ProgramNode, VarDeclNode, BlockNode } from '../../types';
+import { Token, TokenType, ASTNode, ProgramNode, VarDeclNode, BlockNode, FunctionDeclNode, ProcedureDeclNode } from '../../types';
 
 export class Parser {
   private tokens: Token[];
@@ -56,11 +56,17 @@ export class Parser {
       variables = this.parseVarDeclarations();
     }
 
+    const functions: (FunctionDeclNode | ProcedureDeclNode)[] = [];
+    while (this.check(TokenType.FUNCTION) || this.check(TokenType.PROCEDURE)) {
+        if (this.check(TokenType.FUNCTION)) functions.push(this.parseFunction());
+        else functions.push(this.parseProcedure());
+    }
+
     this.consume(TokenType.BEGIN, "Expect 'Begin' after declarations.");
     const body = this.parseBlock([TokenType.END]);
     this.consume(TokenType.END, "Expect 'End' at end of program.");
 
-    return { kind: 'Program', name, variables, body, line: startToken.line };
+    return { kind: 'Program', name, variables, functions, body, line: startToken.line };
   }
 
   private parseVarDeclarations(): VarDeclNode[] {
@@ -77,32 +83,98 @@ export class Parser {
 
           this.consume(TokenType.COLON, "Expect ':' after variable names.");
 
-          let isArray = false;
-          let arraySize = 0;
-          let varType = '';
-
-          // Check if it is an array declaration
+          let dimensions: number[] = [];
+          
+          // Check if it is an array/matrix declaration
           if (this.check(TokenType.IDENTIFIER) && this.peek().value.toLowerCase() === 'array') {
               this.advance(); // consume 'array'
-              isArray = true;
-              this.consume(TokenType.LBRACKET, "Expect '['.");
-              arraySize = parseInt(this.consume(TokenType.NUMBER_LITERAL, "Size integer.").value);
-              this.consume(TokenType.RBRACKET, "Expect ']'.");
+              
+              // Handle multiple dimensions [N], [N][M]
+              do {
+                this.consume(TokenType.LBRACKET, "Expect '[' for array size.");
+                const sizeToken = this.consume(TokenType.NUMBER_LITERAL, "Array size must be a number literal.");
+                dimensions.push(parseInt(sizeToken.value));
+                this.consume(TokenType.RBRACKET, "Expect ']'.");
+              } while (this.check(TokenType.LBRACKET));
               
               const ofTok = this.consume(TokenType.IDENTIFIER, "Expect 'of'.");
               if (ofTok.value.toLowerCase() !== 'of') throw new Error(`Line ${ofTok.line}: Expect 'of'.`);
           }
 
           // Expect Basic Type
+          let varType = '';
           if (this.match(TokenType.T_INTEGER, TokenType.T_REAL, TokenType.T_BOOLEAN, TokenType.T_STRING, TokenType.T_CHAR)) {
               varType = this.previous().value; // e.g., "Integer"
           } else {
               throw new Error(`Line ${this.peek().line}: Expect valid type (Integer, Real, etc.).`);
           }
 
-          decls.push({ kind: 'VarDecl', names, varType, isArray, arraySize, line: firstToken.line });
+          decls.push({ kind: 'VarDecl', names, varType, dimensions, line: firstToken.line });
       }
       return decls;
+  }
+
+  private parseFunction(): FunctionDeclNode {
+    const line = this.consume(TokenType.FUNCTION, "Expect 'Function'.").line;
+    const name = this.consume(TokenType.IDENTIFIER, "Expect function name.").value;
+    
+    this.consume(TokenType.LPAREN, "Expect '('.");
+    const params = this.parseParams();
+    this.consume(TokenType.RPAREN, "Expect ')'.");
+    
+    this.consume(TokenType.COLON, "Expect ':' before return type.");
+    const returnType = this.parseType();
+
+    let variables: VarDeclNode[] = [];
+    if (this.match(TokenType.VAR)) {
+        variables = this.parseVarDeclarations();
+    }
+    
+    this.consume(TokenType.BEGIN, "Expect 'Begin'.");
+    const body = this.parseBlock([TokenType.ENDFUNCTION]);
+    this.consume(TokenType.ENDFUNCTION, "Expect 'EndFunction'.");
+    
+    return { kind: 'FunctionDecl', name, params, returnType, variables, body, line };
+  }
+
+  private parseProcedure(): ProcedureDeclNode {
+    const line = this.consume(TokenType.PROCEDURE, "Expect 'Procedure'.").line;
+    const name = this.consume(TokenType.IDENTIFIER, "Expect procedure name.").value;
+    
+    this.consume(TokenType.LPAREN, "Expect '('.");
+    const params = this.parseParams();
+    this.consume(TokenType.RPAREN, "Expect ')'.");
+
+    let variables: VarDeclNode[] = [];
+    if (this.match(TokenType.VAR)) {
+        variables = this.parseVarDeclarations();
+    }
+    
+    this.consume(TokenType.BEGIN, "Expect 'Begin'.");
+    const body = this.parseBlock([TokenType.ENDPROCEDURE]);
+    this.consume(TokenType.ENDPROCEDURE, "Expect 'EndProcedure'.");
+    
+    return { kind: 'ProcedureDecl', name, params, variables, body, line };
+  }
+
+  private parseParams(): { name: string, type: string }[] {
+      const params: { name: string, type: string }[] = [];
+      if (!this.check(TokenType.RPAREN)) {
+          do {
+              const name = this.consume(TokenType.IDENTIFIER, "Expect parameter name.").value;
+              this.consume(TokenType.COLON, "Expect ':'.");
+              const type = this.parseType();
+              params.push({ name, type });
+          } while (this.match(TokenType.COMMA));
+      }
+      return params;
+  }
+
+  private parseType(): string {
+      if (this.match(TokenType.T_INTEGER, TokenType.T_REAL, TokenType.T_BOOLEAN, TokenType.T_STRING, TokenType.T_CHAR)) {
+          return this.previous().value;
+      }
+      throw new Error(`Line ${this.peek().line}: Expect type.`);
   }
 
   private parseBlock(endTokens: TokenType[]): BlockNode {
@@ -120,13 +192,40 @@ export class Parser {
     if (this.match(TokenType.IF)) return this.parseIf();
     if (this.match(TokenType.WHILE)) return this.parseWhile();
     if (this.match(TokenType.FOR)) return this.parseFor();
+    if (this.match(TokenType.RETURN)) {
+        const line = this.previous().line;
+        const value = this.parseExpression();
+        return { kind: 'Return', value, line };
+    }
 
-    // Assignment or specific identifier call?
+    // Ambiguity: Assignment or Call?
+    // Call: Name(Args)
+    // Assignment: Name <- Value OR Name[i] <- Value
     if (this.check(TokenType.IDENTIFIER)) {
-      return this.parseAssignment();
+       // Lookahead to distinguish
+       const next = this.tokens[this.current + 1];
+       if (next.type === TokenType.LPAREN) {
+           return this.parseCallStatement();
+       } else {
+           return this.parseAssignment();
+       }
     }
 
     throw new Error(`Line ${this.peek().line}: Unexpected token '${this.peek().value}'.`);
+  }
+
+  private parseCallStatement(): ASTNode {
+      const line = this.peek().line;
+      const name = this.consume(TokenType.IDENTIFIER, "Expect identifier.").value;
+      this.consume(TokenType.LPAREN, "Expect '('.");
+      const args: ASTNode[] = [];
+      if (!this.check(TokenType.RPAREN)) {
+          do {
+              args.push(this.parseExpression());
+          } while (this.match(TokenType.COMMA));
+      }
+      this.consume(TokenType.RPAREN, "Expect ')'.");
+      return { kind: 'Call', name, args, line };
   }
 
   private parseRead(): ASTNode {
@@ -159,7 +258,7 @@ export class Parser {
     const target = this.parseReference();
     const line = target.line; // Use line from target
     
-    this.consume(TokenType.ASSIGN, "Expect '←' or '<-' for assignment.");
+    this.consume(TokenType.ASSIGN, "Expect '←', '<-', or ':=' for assignment.");
     const value = this.parseExpression();
     
     let targetName: string | any = target;
@@ -171,10 +270,15 @@ export class Parser {
   private parseReference(): ASTNode {
       const nameToken = this.consume(TokenType.IDENTIFIER, "Expect identifier.");
       
-      if (this.match(TokenType.LBRACKET)) {
-          const index = this.parseExpression();
+      // Handle array access, potentially multi-dimensional [i][j]
+      const indexes: ASTNode[] = [];
+      while (this.match(TokenType.LBRACKET)) {
+          indexes.push(this.parseExpression());
           this.consume(TokenType.RBRACKET, "Expect ']'.");
-          return { kind: 'ArrayAccess', name: nameToken.value, index, line: nameToken.line } as any;
+      }
+      
+      if (indexes.length > 0) {
+          return { kind: 'ArrayAccess', name: nameToken.value, indexes, line: nameToken.line } as any;
       }
       
       return { kind: 'Identifier', name: nameToken.value, line: nameToken.line };
@@ -207,7 +311,7 @@ export class Parser {
   private parseFor(): ASTNode {
     const line = this.previous().line; // match(FOR)
     const variable = this.consume(TokenType.IDENTIFIER, "Expect loop variable.").value;
-    this.consume(TokenType.ASSIGN, "Expect '←' assignment.");
+    this.consume(TokenType.ASSIGN, "Expect assignment.");
     const start = this.parseExpression();
     this.consume(TokenType.TO, "Expect 'to'.");
     const end = this.parseExpression();
@@ -319,7 +423,12 @@ export class Parser {
       return expr;
     }
     
+    // Check for Function Call or Variable
     if (this.check(TokenType.IDENTIFIER)) {
+        const next = this.tokens[this.current + 1];
+        if (next && next.type === TokenType.LPAREN) {
+            return this.parseCallStatement(); // It's an expression context, but same parsing logic
+        }
         return this.parseReference();
     }
 

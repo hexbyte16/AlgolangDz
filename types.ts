@@ -8,11 +8,14 @@ export enum TokenType {
   WHILE, ENDWHILE,
   READ, WRITE,
   
+  // New Keywords for Functions/Procedures
+  FUNCTION, ENDFUNCTION, PROCEDURE, ENDPROCEDURE, RETURN,
+  
   // Types
   T_INTEGER, T_REAL, T_BOOLEAN, T_STRING, T_CHAR,
 
   // Operators & Punctuation
-  ASSIGN, // ←
+  ASSIGN, // ←, <-, :=
   PLUS, MINUS, MULTIPLY, DIVIDE, DIV, MOD,
   LPAREN, RPAREN, LBRACKET, RBRACKET,
   COMMA, COLON,
@@ -51,21 +54,25 @@ export type ASTNode =
   | UnaryOpNode
   | LiteralNode
   | IdentifierNode
-  | ArrayAccessNode;
+  | ArrayAccessNode
+  | FunctionDeclNode
+  | ProcedureDeclNode
+  | CallNode
+  | ReturnNode;
 
 export interface ProgramNode extends BaseNode {
   kind: 'Program';
   name: string;
   variables: VarDeclNode[];
+  functions: (FunctionDeclNode | ProcedureDeclNode)[];
   body: BlockNode;
 }
 
 export interface VarDeclNode extends BaseNode {
   kind: 'VarDecl';
   names: string[];
-  varType: string; // Integer, Real, etc.
-  isArray: boolean;
-  arraySize?: number;
+  varType: string;
+  dimensions: number[]; // [] for scalar, [10] for 1D, [10, 10] for 2D
 }
 
 export interface BlockNode extends BaseNode {
@@ -104,7 +111,35 @@ export interface ForNode extends BaseNode {
 export interface IoNode extends BaseNode {
   kind: 'IO';
   type: 'Read' | 'Write';
-  args: ASTNode[]; // identifiers for Read, exprs for Write
+  args: ASTNode[];
+}
+
+export interface FunctionDeclNode extends BaseNode {
+  kind: 'FunctionDecl';
+  name: string;
+  params: { name: string; type: string }[];
+  returnType: string;
+  variables: VarDeclNode[];
+  body: BlockNode;
+}
+
+export interface ProcedureDeclNode extends BaseNode {
+  kind: 'ProcedureDecl';
+  name: string;
+  params: { name: string; type: string }[];
+  variables: VarDeclNode[];
+  body: BlockNode;
+}
+
+export interface CallNode extends BaseNode {
+  kind: 'Call';
+  name: string;
+  args: ASTNode[];
+}
+
+export interface ReturnNode extends BaseNode {
+  kind: 'Return';
+  value?: ASTNode;
 }
 
 export interface BinaryOpNode extends BaseNode {
@@ -134,7 +169,7 @@ export interface IdentifierNode extends BaseNode {
 export interface ArrayAccessNode extends BaseNode {
   kind: 'ArrayAccess';
   name: string;
-  index: ASTNode;
+  indexes: ASTNode[];
 }
 
 // --- RUNTIME TYPES ---
@@ -142,7 +177,8 @@ export interface ArrayAccessNode extends BaseNode {
 export interface RuntimeValue {
   value: any;
   type: 'Integer' | 'Real' | 'String' | 'Boolean' | 'Array';
-  arrayType?: string; // For arrays, what they hold
+  arrayType?: string;
+  dims?: number[]; // Store dimensions for array bounds checking
 }
 
 export type InterpreterEvent = 
@@ -166,5 +202,5 @@ export interface FileNode {
   type: 'file' | 'folder';
   parentId: string | null;
   content?: string;
-  isOpen?: boolean; // For folders
+  isOpen?: boolean;
 }

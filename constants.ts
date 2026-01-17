@@ -13,6 +13,69 @@ Begin
    Write("Hello, World!")
    Write("Welcome to AlgoLang.")
 End`
+  },
+  {
+    id: 'average',
+    name: 'average.algo',
+    type: 'file',
+    parentId: 'src',
+    content: `Algorithm Average_Note
+Var
+   N : array [5] of Real
+   M, S : Real
+   i : Integer
+Begin
+   For i ← 0 to 4 step 1 do
+      Write("Enter grade for student", i + 1)
+      Read(N[i])
+   EndFor
+
+   S ← 0
+
+   For i ← 0 to 4 step 1 do
+      S ← S + N[i]
+   EndFor
+
+   M ← S / 5
+   Write("The average is:", M)
+End`
+  },
+  {
+    id: 'matrix',
+    name: 'matrix.algo',
+    type: 'file',
+    parentId: 'src',
+    content: `Algorithm MatrixTest
+Var
+   Grid : array [3][3] of Integer
+   r, c : Integer
+Begin
+   For r := 0 to 2 step 1 do
+     For c := 0 to 2 step 1 do
+        Grid[r][c] := (r * 3) + c + 1
+        Write("Grid[", r, "][", c, "] =", Grid[r][c])
+     EndFor
+   EndFor
+End`
+  },
+  {
+    id: 'function',
+    name: 'function.algo',
+    type: 'file',
+    parentId: 'src',
+    content: `Algorithm FuncTest
+Var
+  result : Integer
+
+Function Add(a: Integer, b: Integer) : Integer
+Begin
+  Return a + b
+EndFunction
+
+Begin
+  result <- Add(10, 20)
+  Write("Result is:", result)
+End`
   }
 ];
 
@@ -20,65 +83,52 @@ export const SYNTAX_GUIDE = `
 # Syntax Reference
 
 ## Structure
-Every program starts with \`Algorithm\` and ends with \`End\`.
-
 \`\`\`algo
 Algorithm MyProgram
 Var
   x : Integer
+Function MyFunc() : Integer
 Begin
-  // Code here
+  Return 1
+EndFunction
+Begin
+  // Main Code
 End
 \`\`\`
 
-## Variables
-Declared in the \`Var\` block before \`Begin\`.
-Types: \`Integer\`, \`Real\`, \`String\`, \`Boolean\`.
+## Assignment
+You can use three symbols interchangeably:
+- Arrow: \`←\`
+- Text Arrow: \`<-\`
+- Pascal Style: \`:=\`
 
+## Arrays & Matrices
 \`\`\`algo
 Var
-  count : Integer
-  price : Real
-  name : String
-  isValid : Boolean
+  vec : array [10] of Integer
+  mat : array [3][3] of Real
+Begin
+  vec[0] <- 1
+  mat[1][2] := 5.5
+End
 \`\`\`
 
-## I/O
-- **Output**: \`Write(expression)\`
-- **Input**: \`Read(variable)\`
-
-## Conditions
-
+## Functions & Procedures
 \`\`\`algo
-If x > 10 Then
-  Write("Big")
-Else
-  Write("Small")
-EndIf
+Procedure Greet(name: String)
+Begin
+  Write("Hello", name)
+EndProcedure
+
+Function Square(n: Integer) : Integer
+Begin
+  Return n * n
+EndFunction
 \`\`\`
 
 ## Loops
-
-**For Loop**:
 \`\`\`algo
-For i ← 0 to 10 step 1 do
-  Write(i)
-EndFor
-\`\`\`
-
-**While Loop**:
-\`\`\`algo
-While x < 100 Do
-  x ← x + 1
-EndWhile
-\`\`\`
-
-## Arrays
-\`\`\`algo
-Var
-  scores : array [5] of Integer
-Begin
-  scores[0] ← 10
-End
+For i <- 0 to 10 step 1 do ... EndFor
+While x < 10 Do ... EndWhile
 \`\`\`
 `;
