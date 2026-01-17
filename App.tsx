@@ -358,7 +358,7 @@ const App: React.FC = () => {
   const ActivityBar = () => (
       <div className={`
           flex md:flex-col flex-row items-center md:py-4 py-0 md:gap-6 justify-around md:justify-start
-          w-full md:w-16 md:h-full h-16
+          w-full md:w-16 md:h-full h-16 shrink-0
           fixed md:relative bottom-0 left-0 z-50
           border-t md:border-t-0 md:border-e 
           ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:shadow-sm'}
@@ -398,84 +398,78 @@ const App: React.FC = () => {
       </div>
   );
 
-  const rootClass = `h-screen flex flex-col ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'} ${lang === 'ar' ? 'font-ar' : ''}`;
-  const navClass = `px-6 py-4 flex justify-between items-center ${isDarkMode ? 'bg-[#0f281a]/80 backdrop-blur-md' : 'bg-white/80 backdrop-blur-md shadow-sm'} sticky top-0 z-50`;
-
-  // --- VIEWS ---
-
-  if (view === 'home') {
-      return (
-        <div className={rootClass} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-            <nav className={navClass}>
-                <div className="flex items-center gap-2">
-                    <div className="bg-emerald-600 rounded-lg p-1">
-                        <Terminal className="text-white" size={20} />
-                    </div>
-                    <span className={`font-bold text-xl tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>AlgoLang <span className="text-emerald-500">DZ</span></span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button 
-                        onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
-                        className={`p-2 rounded-lg font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-400' : 'hover:bg-emerald-50 text-emerald-700'}`}
-                    >
-                        <Languages size={18} />
-                        <span className="hidden sm:inline">{lang === 'en' ? 'العربية' : 'English'}</span>
-                    </button>
-                    <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-emerald-500/20 transition-colors">
-                        {isDarkMode ? <Sun className="text-amber-400" /> : <Moon className="text-emerald-700" />}
-                    </button>
-                </div>
-            </nav>
-            <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
-                <Landing onStart={() => handleViewChange('ide')} onDocs={() => handleViewChange('docs')} isDarkMode={isDarkMode} lang={lang} />
-            </div>
-             <ActivityBar />
-        </div>
-      );
-  }
-
-  if (view === 'docs') {
-      return (
-        <div className={`flex h-screen flex-col md:flex-row ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'} ${lang === 'ar' ? 'font-ar' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-             <ActivityBar />
-             <div className="flex-1 overflow-hidden pb-16 md:pb-0 h-full">
-                <Docs onBack={() => handleViewChange('home')} isDarkMode={isDarkMode} lang={lang} />
-             </div>
-        </div>
-      );
-  }
-
   return (
     <div className={`flex h-screen flex-col md:flex-row overflow-hidden ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'} ${lang === 'ar' ? 'font-ar' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       
+      {/* 1. Navigation Bar (Left on Desktop, Bottom on Mobile) */}
       <ActivityBar />
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden pb-16 md:pb-0 relative">
-        {/* LEARNING MODE */}
-        {view === 'learn' && (
-            <LearningMode
-                completedLessons={completedLessons}
-                currentLessonId={currentLessonId}
-                onSelectLesson={handleLessonSelect}
-                onCompleteLesson={(id) => setCompletedLessons(prev => [...prev, id])}
-                code={code}
-                setCode={handleCodeChange}
-                output={output}
-                onRun={startExecution}
-                onStop={stopExecution}
-                isRunning={isRunning}
-                isDarkMode={isDarkMode}
-                lang={lang}
-            >
-                <ConsoleComponent />
-            </LearningMode>
+      {/* 2. Main Content Wrapper */}
+      <div className={`flex-1 flex flex-col h-full overflow-hidden relative pb-16 md:pb-0 transition-all`}>
+        
+        {/* VIEW: HOME */}
+        {view === 'home' && (
+             <div className="flex flex-col h-full overflow-hidden">
+                <nav className={`px-6 py-4 flex justify-between items-center shrink-0 ${isDarkMode ? 'bg-[#0f281a]/80 backdrop-blur-md' : 'bg-white/80 backdrop-blur-md shadow-sm'} sticky top-0 z-30`}>
+                    <div className="flex items-center gap-2">
+                        <div className="bg-emerald-600 rounded-lg p-1">
+                            <Terminal className="text-white" size={20} />
+                        </div>
+                        <span className={`font-bold text-xl tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>AlgoLang <span className="text-emerald-500">DZ</span></span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
+                            className={`p-2 rounded-lg font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-400' : 'hover:bg-emerald-50 text-emerald-700'}`}
+                        >
+                            <Languages size={18} />
+                            <span className="hidden sm:inline">{lang === 'en' ? 'العربية' : 'English'}</span>
+                        </button>
+                        <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-emerald-500/20 transition-colors">
+                            {isDarkMode ? <Sun className="text-amber-400" /> : <Moon className="text-emerald-700" />}
+                        </button>
+                    </div>
+                </nav>
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                    <Landing onStart={() => handleViewChange('ide')} onDocs={() => handleViewChange('docs')} isDarkMode={isDarkMode} lang={lang} />
+                </div>
+             </div>
         )}
 
-        {/* IDE MODE */}
+        {/* VIEW: DOCS */}
+        {view === 'docs' && (
+            <div className="h-full w-full overflow-hidden">
+                <Docs onBack={() => handleViewChange('home')} isDarkMode={isDarkMode} lang={lang} />
+            </div>
+        )}
+
+        {/* VIEW: LEARN */}
+        {view === 'learn' && (
+             <div className="h-full w-full overflow-hidden">
+                <LearningMode
+                    completedLessons={completedLessons}
+                    currentLessonId={currentLessonId}
+                    onSelectLesson={handleLessonSelect}
+                    onCompleteLesson={(id) => setCompletedLessons(prev => [...prev, id])}
+                    code={code}
+                    setCode={handleCodeChange}
+                    output={output}
+                    onRun={startExecution}
+                    onStop={stopExecution}
+                    isRunning={isRunning}
+                    isDarkMode={isDarkMode}
+                    lang={lang}
+                >
+                    <ConsoleComponent />
+                </LearningMode>
+            </div>
+        )}
+
+        {/* VIEW: IDE (PROJECT) */}
         {view === 'ide' && (
-            <>
-                {/* Mobile Header */}
-                <header className={`flex justify-between items-center px-4 py-2 border-b h-14 shrink-0 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <div className="flex flex-col h-full overflow-hidden">
+                {/* Mobile/Tablet IDE Header */}
+                <header className={`flex justify-between items-center px-4 py-2 border-b h-14 shrink-0 z-30 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-sm'}`}>
                     <div className="flex items-center gap-2">
                         <button 
                             className={`p-2 rounded-lg lg:hidden ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}
@@ -522,8 +516,8 @@ const App: React.FC = () => {
 
                 <div className="flex-1 flex flex-row h-full overflow-hidden relative">
                     
-                    {/* Desktop File Explorer */}
-                    <div className={`hidden lg:flex w-64 flex-col border-e h-full transition-colors ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
+                    {/* Desktop File Explorer (Sidebar) */}
+                    <div className={`hidden lg:flex w-64 flex-col border-e h-full transition-colors flex-shrink-0 ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
                         <FileExplorer 
                             files={files} 
                             activeFileId={activeFileId}
@@ -536,7 +530,7 @@ const App: React.FC = () => {
                         />
                     </div>
 
-                    {/* Mobile File Explorer Drawer */}
+                    {/* Mobile File Explorer (Drawer) */}
                     {isMobileExplorerOpen && (
                         <div className="absolute inset-0 z-40 lg:hidden flex" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileExplorerOpen(false)}></div>
@@ -561,10 +555,10 @@ const App: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Main Work Area */}
+                    {/* IDE Content Area */}
                     <div className="flex-1 flex flex-col h-full min-w-0">
-                         {/* Mobile Tab Switcher (Editor vs Console) */}
-                         <div className="lg:hidden flex border-b text-sm font-medium">
+                         {/* Mobile Tab Switcher */}
+                         <div className="lg:hidden flex border-b text-sm font-medium shrink-0">
                             <button 
                                 onClick={() => setActiveMobileTab('editor')}
                                 className={`flex-1 py-2 text-center border-b-2 ${activeMobileTab === 'editor' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500'}`}
@@ -581,7 +575,7 @@ const App: React.FC = () => {
                          </div>
 
                         {/* Editor Container */}
-                        <div className={`flex-1 relative ${activeMobileTab === 'editor' ? 'block' : 'hidden lg:block'}`} dir="ltr">
+                        <div className={`flex-1 relative overflow-hidden ${activeMobileTab === 'editor' ? 'block' : 'hidden lg:block'}`} dir="ltr">
                              {activeFileId ? (
                                 <CodeEditor
                                     value={code}
@@ -607,7 +601,7 @@ const App: React.FC = () => {
                          `}>
                             <ConsoleComponent />
                             
-                            {/* Variables (Visible on Desktop or Mobile Console Tab) */}
+                            {/* Variables Table */}
                             <div className={`h-1/3 min-h-[150px] flex flex-col border-t ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-white border-slate-200'}`}>
                                 <div className={`px-4 py-2 border-b flex items-center gap-2 shrink-0 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
                                     <Bug size={14} className="text-amber-500" />
@@ -640,7 +634,7 @@ const App: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </>
+            </div>
         )}
       </div>
     </div>

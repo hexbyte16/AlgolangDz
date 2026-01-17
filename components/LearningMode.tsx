@@ -102,7 +102,7 @@ export const LearningMode: React.FC<LearningModeProps> = ({
 
   // Group Lessons by Category
   const groupedLessons = useMemo(() => {
-      const groups: Record<string, typeof LESSONS> = {};
+      const groups: Record<string, Lesson[]> = {};
       LESSONS.forEach(l => {
           const cat = l.content[lang].category;
           if (!groups[cat]) groups[cat] = [];
@@ -179,44 +179,47 @@ export const LearningMode: React.FC<LearningModeProps> = ({
         </div>
 
         <div className="p-4 space-y-6">
-            {Object.entries(groupedLessons).map(([category, catLessons]) => (
-                <div key={category}>
-                    <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        {category}
-                    </h3>
-                    <div className="space-y-1">
-                        {catLessons.map((l, idx) => {
-                            const globalIdx = LESSONS.findIndex(item => item.id === l.id);
-                            const isCompleted = completedLessons.includes(l.id);
-                            const isLocked = globalIdx > 0 && !completedLessons.includes(LESSONS[globalIdx - 1].id);
-                            const isActive = l.id === currentLessonId;
-                            const lContent = l.content[lang];
+            {Object.keys(groupedLessons).map((category) => {
+                const catLessons = groupedLessons[category];
+                return (
+                    <div key={category}>
+                        <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {category}
+                        </h3>
+                        <div className="space-y-1">
+                            {catLessons.map((l, idx) => {
+                                const globalIdx = LESSONS.findIndex(item => item.id === l.id);
+                                const isCompleted = completedLessons.includes(l.id);
+                                const isLocked = globalIdx > 0 && !completedLessons.includes(LESSONS[globalIdx - 1].id);
+                                const isActive = l.id === currentLessonId;
+                                const lContent = l.content[lang];
 
-                            return (
-                                <button
-                                    key={l.id}
-                                    disabled={isLocked}
-                                    onClick={() => onSelectLesson(l.id)}
-                                    className={`w-full text-start px-3 py-2.5 rounded-lg text-sm transition-all flex items-center justify-between group
-                                        ${isActive 
-                                            ? (isDarkMode ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border border-emerald-200')
-                                            : (isLocked 
-                                                ? (isDarkMode ? 'opacity-40 text-slate-600' : 'opacity-40 text-slate-400') 
-                                                : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'))
-                                        }
-                                    `}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        {isLocked ? <Lock size={14} /> : (isCompleted ? <CheckCircle size={14} className="text-emerald-500" /> : <Circle size={14} />)}
-                                        <span className="font-medium truncate">{lContent.title}</span>
-                                    </div>
-                                    {isActive && <ChevronNext size={14} />}
-                                </button>
-                            );
-                        })}
+                                return (
+                                    <button
+                                        key={l.id}
+                                        disabled={isLocked}
+                                        onClick={() => onSelectLesson(l.id)}
+                                        className={`w-full text-start px-3 py-2.5 rounded-lg text-sm transition-all flex items-center justify-between group
+                                            ${isActive 
+                                                ? (isDarkMode ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-700 border border-emerald-200')
+                                                : (isLocked 
+                                                    ? (isDarkMode ? 'opacity-40 text-slate-600' : 'opacity-40 text-slate-400') 
+                                                    : (isDarkMode ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'))
+                                            }
+                                        `}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {isLocked ? <Lock size={14} /> : (isCompleted ? <CheckCircle size={14} className="text-emerald-500" /> : <Circle size={14} />)}
+                                            <span className="font-medium truncate">{lContent.title}</span>
+                                        </div>
+                                        {isActive && <ChevronNext size={14} />}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
       </div>
       
