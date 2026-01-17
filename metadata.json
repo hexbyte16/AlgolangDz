@@ -1,0 +1,5 @@
+{
+  "name": "AlgoLang Web IDE",
+  "description": "A web-based interpreter for a classic academic algorithmic language. Write, run, and debug pseudocode directly in the browser with strict type checking and educational error messages.",
+  "requestFramePermissions": []
+}
