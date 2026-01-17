@@ -1,6 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LESSONS, TRANSLATIONS } from '../constants';
-import { ChevronRight, ChevronLeft, CheckCircle, Lock, Play, Circle, Check, X, RotateCcw, ArrowRight, ArrowLeft, Menu, Terminal as TerminalIcon, BookOpen } from 'lucide-react';
+import { 
+    ChevronRight, ChevronLeft, CheckCircle, Lock, Play, Circle, Check, X, 
+    RotateCcw, ArrowRight, ArrowLeft, Menu, Terminal as TerminalIcon, 
+    BookOpen, GripVertical, GripHorizontal 
+} from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { DocBlock, Lesson } from '../types';
 
@@ -41,7 +45,57 @@ export const LearningMode: React.FC<LearningModeProps> = ({
   
   const [feedback, setFeedback] = useState<{success: boolean, message?: string} | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isSidebarOpen, setSidebarOpen] = useState(false); // Closed by default on mobile (controlled via media query usually, but logic below handles overlay)
+
+  // --- Resizing State ---
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rightPaneRef = useRef<HTMLDivElement>(null);
+  
+  // Width of instructions pane in %
+  const [instructionsWidth, setInstructionsWidth] = useState(30); 
+  // Height of editor pane in %
+  const [editorHeight, setEditorHeight] = useState(65); 
+  
+  const [isResizingX, setIsResizingX] = useState(false);
+  const [isResizingY, setIsResizingY] = useState(false);
+
+  // Handle Resize Logic
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+        if (isResizingX && containerRef.current) {
+            const containerRect = containerRef.current.getBoundingClientRect();
+            let newWidthPercent = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+            if (lang === 'ar') newWidthPercent = 100 - newWidthPercent;
+            newWidthPercent = Math.max(20, Math.min(newWidthPercent, 60));
+            setInstructionsWidth(newWidthPercent);
+        }
+
+        if (isResizingY && rightPaneRef.current) {
+            const paneRect = rightPaneRef.current.getBoundingClientRect();
+            let newHeightPercent = ((e.clientY - paneRect.top) / paneRect.height) * 100;
+            newHeightPercent = Math.max(20, Math.min(newHeightPercent, 80));
+            setEditorHeight(newHeightPercent);
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsResizingX(false);
+        setIsResizingY(false);
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+    };
+
+    if (isResizingX || isResizingY) {
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingX, isResizingY, lang]);
 
   // Calculate Progress
   const progress = Math.round((completedLessons.length / LESSONS.length) * 100);
@@ -57,10 +111,11 @@ export const LearningMode: React.FC<LearningModeProps> = ({
       return groups;
   }, [lang]);
 
-  // When lesson changes, reset feedback
+  // When lesson changes, reset feedback and close mobile sidebar
   useEffect(() => {
     setFeedback(null);
     setShowSuccessModal(false);
+    setSidebarOpen(false);
   }, [currentLessonId]);
 
   const handleCheck = () => {
@@ -68,12 +123,9 @@ export const LearningMode: React.FC<LearningModeProps> = ({
          setFeedback({ success: false, message: lang === 'ar' ? "قم بتشغيل الكود أولاً!" : "Run your code first!" });
          return;
     }
-    
     const result = lesson.validate(code, output);
     const msg = result.message ? (typeof result.message === 'object' ? result.message[lang] : result.message) : undefined;
-    
     setFeedback({ success: result.success, message: msg });
-    
     if (result.success) {
       if (!completedLessons.includes(lesson.id)) {
           onCompleteLesson(lesson.id);
@@ -89,21 +141,22 @@ export const LearningMode: React.FC<LearningModeProps> = ({
   return (
     <div className={`flex h-full w-full overflow-hidden ${isDarkMode ? 'bg-[#0a1f13]' : 'bg-slate-50'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       
-      {/* Sidebar Toggle (Mobile/Tablet) */}
-      {!isSidebarOpen && (
-        <button 
-            onClick={() => setSidebarOpen(true)}
-            className={`absolute top-20 left-4 z-30 p-2 rounded-lg shadow-lg ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-white text-slate-700'}`}
-        >
-            <Menu size={20} />
-        </button>
-      )}
+      {/* Sidebar Toggle (Mobile) */}
+      <button 
+          onClick={() => setSidebarOpen(true)}
+          className={`lg:hidden absolute top-4 left-4 z-30 p-2 rounded-lg shadow-lg ${isDarkMode ? 'bg-slate-800 text-white' : 'bg-white text-slate-700'}`}
+      >
+          <Menu size={20} />
+      </button>
 
       {/* Sidebar: Curriculum */}
       <div 
         className={`
-            flex-shrink-0 flex flex-col border-e h-full overflow-y-auto transition-all duration-300
-            ${isSidebarOpen ? 'w-72 opacity-100' : 'w-0 opacity-0 overflow-hidden border-none'}
+            fixed lg:relative z-40 h-full
+            transition-all duration-300 ease-in-out
+            ${isSidebarOpen ? 'translate-x-0 w-72 shadow-2xl' : (lang === 'ar' ? 'translate-x-full lg:translate-x-0' : '-translate-x-full lg:translate-x-0')}
+            lg:w-72 lg:block lg:shadow-none
+            flex flex-col border-e overflow-y-auto
             ${isDarkMode ? 'border-emerald-900/30 bg-[#0f281a]' : 'border-slate-200 bg-white'}
         `}
       >
@@ -120,8 +173,8 @@ export const LearningMode: React.FC<LearningModeProps> = ({
                     <span className="text-xs text-slate-500 font-mono">{progress}%</span>
                 </div>
             </div>
-            <button onClick={() => setSidebarOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                <ChevronNext size={18} className="rotate-180" />
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X size={20} />
             </button>
         </div>
 
@@ -166,18 +219,34 @@ export const LearningMode: React.FC<LearningModeProps> = ({
             ))}
         </div>
       </div>
+      
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && (
+          <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)}></div>
+      )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden relative">
+      {/* Main Content (Split View) */}
+      <div 
+        ref={containerRef}
+        className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden relative"
+      >
          
-         {/* Instruction Pane */}
-         <div className={`w-full md:w-[35%] lg:w-[30%] flex flex-col border-e overflow-y-auto custom-scrollbar relative z-10 ${isDarkMode ? 'border-emerald-900/30 bg-[#0a1f13]' : 'border-slate-200 bg-slate-50'}`}>
+         {/* LEFT PANE: Instructions */}
+         <div 
+            className={`
+                flex flex-col border-e overflow-y-auto custom-scrollbar relative z-10 
+                lg:h-full
+                h-[40%] border-b lg:border-b-0 
+                ${isDarkMode ? 'border-emerald-900/30 bg-[#0a1f13]' : 'border-slate-200 bg-slate-50'}
+            `}
+            style={{ width: window.innerWidth >= 1024 ? `${instructionsWidth}%` : '100%' }}
+         >
             <div className="p-8 pb-32">
-                <div className="mb-6">
+                <div className="mb-6 mt-6 lg:mt-0">
                     <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>
                         {lessonContent.category}
                     </span>
-                    <h1 className={`text-3xl font-extrabold mt-4 mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{lessonContent.title}</h1>
+                    <h1 className={`text-2xl md:text-3xl font-extrabold mt-4 mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{lessonContent.title}</h1>
                     <div className={`h-1 w-16 rounded-full ${isDarkMode ? 'bg-emerald-600' : 'bg-emerald-500'}`} />
                 </div>
                 
@@ -195,7 +264,7 @@ export const LearningMode: React.FC<LearningModeProps> = ({
                         <div className={`p-1 rounded-full ${feedback.success ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
                             {feedback.success ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />}
                         </div>
-                        <span>{feedback.message || (feedback.success ? t.lessonComplete : t.lessonFailed)}</span>
+                        <span className="truncate">{feedback.message || (feedback.success ? t.lessonComplete : t.lessonFailed)}</span>
                     </div>
                 )}
                 
@@ -203,35 +272,50 @@ export const LearningMode: React.FC<LearningModeProps> = ({
                      <button
                         onClick={onRun}
                         disabled={isRunning}
-                        className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95
+                        className={`flex-1 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95 text-sm md:text-base
                             ${isRunning 
                                 ? 'bg-slate-700 text-slate-400 cursor-wait'
                                 : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30'}
                         `}
                      >
-                        <Play size={18} className={lang === 'ar' ? 'rotate-180' : ''} fill="currentColor" /> {t.run}
+                        <Play size={16} className={lang === 'ar' ? 'rotate-180' : ''} fill="currentColor" /> {t.run}
                      </button>
                      <button
                         onClick={handleCheck}
-                        className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border-2 transform active:scale-95
+                        className={`flex-1 py-2 md:py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all border-2 transform active:scale-95 text-sm md:text-base
                              ${isDarkMode 
                                 ? 'border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600' 
                                 : 'border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm'}
                              ${feedback?.success ? 'bg-green-50 !border-green-200 !text-green-700' : ''}
                         `}
                      >
-                        {feedback?.success ? <RotateCcw size={18} /> : <CheckCircle size={18} />} 
+                        {feedback?.success ? <RotateCcw size={16} /> : <CheckCircle size={16} />} 
                         {feedback?.success ? t.tryAgain : t.checkAnswer}
                      </button>
                 </div>
             </div>
          </div>
 
-         {/* Right Pane: Split View (Editor / Terminal) */}
-         <div className="flex-1 flex flex-col min-w-0 h-full" dir="ltr">
+         {/* RESIZER X (Instructions vs Right Pane) - Hidden on mobile */}
+         <div 
+             className={`hidden lg:flex w-1 cursor-col-resize hover:bg-emerald-500 transition-colors z-20 items-center justify-center group ${isDarkMode ? 'bg-[#0f281a] hover:bg-emerald-600' : 'bg-slate-200 hover:bg-emerald-400'}`}
+             onMouseDown={() => setIsResizingX(true)}
+         >
+             <GripVertical size={12} className={`opacity-0 group-hover:opacity-100 ${isDarkMode ? 'text-white' : 'text-white'}`} />
+         </div>
+
+         {/* RIGHT PANE: Split View (Editor / Terminal) */}
+         <div 
+            ref={rightPaneRef}
+            className="flex-1 flex flex-col min-w-0 h-[60%] lg:h-full overflow-hidden" 
+            dir="ltr"
+         >
              
-             {/* Editor Area (65%) */}
-             <div className="flex-[65] relative min-h-0">
+             {/* TOP: Editor Area */}
+             <div 
+                className="relative min-h-0 flex-1 lg:flex-none"
+                style={{ height: window.innerWidth >= 1024 ? `${editorHeight}%` : '50%' }}
+             >
                 <CodeEditor
                     value={code}
                     onChange={setCode}
@@ -242,8 +326,16 @@ export const LearningMode: React.FC<LearningModeProps> = ({
                 />
              </div>
 
-             {/* Terminal Area (35%) */}
-             <div className={`flex-[35] flex flex-col min-h-0 border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative z-20 ${isDarkMode ? 'border-emerald-900/30 bg-[#05110a]' : 'border-slate-200 bg-[#1e1e1e]'}`}>
+             {/* RESIZER Y (Editor vs Terminal) - Hidden on mobile */}
+             <div 
+                 className={`hidden lg:flex h-1 cursor-row-resize hover:bg-emerald-500 transition-colors z-20 items-center justify-center group ${isDarkMode ? 'bg-[#0f281a] hover:bg-emerald-600' : 'bg-slate-200 hover:bg-emerald-400'}`}
+                 onMouseDown={() => setIsResizingY(true)}
+             >
+                 <GripHorizontal size={12} className={`opacity-0 group-hover:opacity-100 ${isDarkMode ? 'text-white' : 'text-white'}`} />
+             </div>
+
+             {/* BOTTOM: Terminal Area */}
+             <div className={`flex-1 flex flex-col min-h-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative z-20 ${isDarkMode ? 'border-emerald-900/30 bg-[#05110a]' : 'border-slate-200 bg-[#1e1e1e]'}`}>
                  {/* Fake Terminal Header */}
                  <div className={`h-8 flex items-center px-4 gap-2 text-xs font-mono select-none ${isDarkMode ? 'bg-[#0f281a] text-slate-400' : 'bg-[#252526] text-slate-400'}`}>
                     <TerminalIcon size={12} />
@@ -258,13 +350,13 @@ export const LearningMode: React.FC<LearningModeProps> = ({
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-            <div className={`p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center transform transition-all scale-100 border ${isDarkMode ? 'bg-[#0f281a] border-emerald-500/30' : 'bg-white border-white'}`}>
-                <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/30">
-                    <Check size={40} strokeWidth={4} />
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+            <div className={`p-6 md:p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center transform transition-all scale-100 border ${isDarkMode ? 'bg-[#0f281a] border-emerald-500/30' : 'bg-white border-white'}`}>
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-400 to-emerald-600 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/30">
+                    <Check size={32} strokeWidth={4} />
                 </div>
-                <h2 className={`text-3xl font-extrabold mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{t.lessonComplete}</h2>
-                <p className={`mb-8 text-lg font-light leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                <h2 className={`text-2xl md:text-3xl font-extrabold mb-3 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{t.lessonComplete}</h2>
+                <p className={`mb-8 text-base md:text-lg font-light leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                     {lang === 'ar' ? 'عمل رائع! لقد أتقنت هذا المفهوم.' : 'Great job! You\'ve mastered this concept.'}
                 </p>
                 
@@ -272,7 +364,7 @@ export const LearningMode: React.FC<LearningModeProps> = ({
                     {nextLessonId ? (
                         <button 
                             onClick={() => onSelectLesson(nextLessonId)}
-                            className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-lg shadow-lg shadow-emerald-600/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+                            className="w-full py-3 md:py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-lg shadow-lg shadow-emerald-600/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
                         >
                             {t.nextLesson} <ArrowNext size={20} />
                         </button>

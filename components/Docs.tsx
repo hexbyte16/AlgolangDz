@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Book, ChevronRight, Hash, Info, AlertTriangle, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Book, ChevronRight, Hash, Info, AlertTriangle, Lightbulb, Menu, X } from 'lucide-react';
 import { DOCS_DATA_EN, DOCS_DATA_AR, TRANSLATIONS } from '../constants';
 import { DocBlock, DocPage } from '../types';
 
@@ -11,6 +11,7 @@ interface DocsProps {
 
 export const Docs: React.FC<DocsProps> = ({ onBack, isDarkMode, lang }) => {
   const [activePageId, setActivePageId] = useState('intro');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const DOCS_DATA = lang === 'ar' ? DOCS_DATA_AR : DOCS_DATA_EN;
   const t = TRANSLATIONS[lang];
@@ -22,19 +23,43 @@ export const Docs: React.FC<DocsProps> = ({ onBack, isDarkMode, lang }) => {
   const ChevronNext = lang === 'ar' ? ArrowLeft : ChevronRight;
   const ArrowBack = lang === 'ar' ? ChevronRight : ArrowLeft;
 
+  const handlePageSelect = (id: string) => {
+      setActivePageId(id);
+      setIsSidebarOpen(false);
+  };
+
   return (
     <div className={`flex h-full w-full ${isDarkMode ? 'bg-[#0a1f13] text-slate-200' : 'bg-white text-slate-800'}`}>
       
+      {/* Mobile Toggle */}
+      <div className="md:hidden absolute top-4 left-4 z-30">
+        <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className={`p-2 rounded-lg shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
+        >
+            <Menu size={20} />
+        </button>
+      </div>
+
       {/* Sidebar Navigation */}
-      <div className={`w-64 flex-shrink-0 flex flex-col border-e h-full overflow-y-auto custom-scrollbar ${isDarkMode ? 'border-emerald-900/30 bg-[#0f281a]' : 'border-slate-100 bg-slate-50'}`}>
-        <div className="p-4 border-b border-inherit sticky top-0 backdrop-blur-sm z-10 flex items-center gap-2">
-            <button onClick={onBack} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-500' : 'hover:bg-white text-slate-500 hover:text-emerald-600'}`}>
-                <ArrowBack size={20} className={lang === 'ar' ? 'rotate-180' : ''}/>
+      <div className={`
+          fixed md:relative z-40 h-full w-64 flex-shrink-0 flex flex-col border-e transition-transform duration-300
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${isDarkMode ? 'border-emerald-900/30 bg-[#0f281a]' : 'border-slate-100 bg-slate-50'}
+      `}>
+        <div className="p-4 border-b border-inherit sticky top-0 backdrop-blur-sm z-10 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+                <button onClick={onBack} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-500' : 'hover:bg-white text-slate-500 hover:text-emerald-600'}`}>
+                    <ArrowBack size={20} className={lang === 'ar' ? 'rotate-180' : ''}/>
+                </button>
+                <span className="font-bold text-lg">{t.documentation}</span>
+            </div>
+            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden">
+                <X size={20} />
             </button>
-            <span className="font-bold text-lg">{t.documentation}</span>
         </div>
         
-        <div className="p-4 space-y-8">
+        <div className="p-4 space-y-8 overflow-y-auto custom-scrollbar flex-1">
             {DOCS_DATA.map((category) => (
                 <div key={category.title}>
                     <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-emerald-600' : 'text-slate-400'}`}>
@@ -44,7 +69,7 @@ export const Docs: React.FC<DocsProps> = ({ onBack, isDarkMode, lang }) => {
                         {category.pages.map(page => (
                             <button
                                 key={page.id}
-                                onClick={() => setActivePageId(page.id)}
+                                onClick={() => handlePageSelect(page.id)}
                                 className={`w-full text-start px-3 py-2 rounded-md text-sm transition-all flex items-center justify-between group ${
                                     activePageId === page.id
                                     ? (isDarkMode ? 'bg-emerald-600/20 text-emerald-400 font-medium' : 'bg-white shadow-sm text-emerald-700 font-medium')
@@ -60,15 +85,20 @@ export const Docs: React.FC<DocsProps> = ({ onBack, isDarkMode, lang }) => {
             ))}
         </div>
       </div>
+      
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+          <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar scroll-smooth">
-         <div className="max-w-4xl mx-auto px-8 py-12">
+         <div className="max-w-4xl mx-auto px-6 md:px-8 py-12 md:py-12 mt-8 md:mt-0">
             
             {/* Page Header */}
             <div className="mb-10 pb-6 border-b border-inherit">
-                <h1 className="text-4xl font-extrabold mb-4 tracking-tight">{activePage.title}</h1>
-                <p className={`text-xl font-light leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                <h1 className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight">{activePage.title}</h1>
+                <p className={`text-lg md:text-xl font-light leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     {activePage.description}
                 </p>
             </div>

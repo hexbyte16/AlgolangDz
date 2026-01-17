@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Trash2, AlertTriangle, Terminal, Pause, StepForward, Bug, Sun, Moon, Home, FolderOpen, Book, RotateCcw, Languages, GraduationCap } from 'lucide-react';
+import { Play, Trash2, AlertTriangle, Terminal, Pause, StepForward, Bug, Sun, Moon, Home, FolderOpen, Book, RotateCcw, Languages, GraduationCap, Menu, X } from 'lucide-react';
 import { Lexer } from './services/algo/lexer';
 import { Parser } from './services/algo/parser';
 import { Interpreter } from './services/algo/interpreter';
@@ -46,6 +46,10 @@ const App: React.FC = () => {
   const [files, setFiles] = useState<FileNode[]>(() => loadState(STORAGE_KEYS.FILES, INITIAL_FILES));
   const [activeFileId, setActiveFileId] = useState<string>(() => loadState(STORAGE_KEYS.ACTIVE_FILE, 'main'));
   
+  // Mobile UI State
+  const [isMobileExplorerOpen, setIsMobileExplorerOpen] = useState(false);
+  const [activeMobileTab, setActiveMobileTab] = useState<'editor' | 'console'>('editor');
+
   // Initialize code
   const [code, setCode] = useState<string>(() => {
       const currentFiles: FileNode[] = loadState(STORAGE_KEYS.FILES, INITIAL_FILES);
@@ -108,6 +112,7 @@ const App: React.FC = () => {
         setActiveFileId(id);
         setCode(file.content || '');
         stopExecution();
+        setIsMobileExplorerOpen(false); // Close mobile drawer on selection
     }
   };
 
@@ -134,11 +139,16 @@ const App: React.FC = () => {
           setCode(file?.content || '');
       }
       setView(newView);
+      setIsMobileExplorerOpen(false);
   };
 
   // Auto-focus & Scroll console
   useEffect(() => {
-    if (isWaitingForInput && inputRef.current) inputRef.current.focus();
+    if (isWaitingForInput) {
+        if (inputRef.current) inputRef.current.focus();
+        // Switch to console tab on mobile if waiting for input
+        setActiveMobileTab('console');
+    }
     if (consoleBottomRef.current) consoleBottomRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [isWaitingForInput, output]);
 
@@ -195,6 +205,9 @@ const App: React.FC = () => {
     setErrors([]);
     setVariables(new Map());
     
+    // Auto switch to console on mobile when run starts
+    setActiveMobileTab('console');
+
     setTimeout(() => {
         try {
             const lexer = new Lexer(code);
@@ -302,7 +315,7 @@ const App: React.FC = () => {
 
   const ConsoleComponent = () => (
       <div 
-        className={`flex-1 flex flex-col cursor-text ${isDarkMode ? 'bg-[#05110a]' : 'bg-[#1e1e1e]'} `} 
+        className={`flex-1 flex flex-col cursor-text h-full ${isDarkMode ? 'bg-[#05110a]' : 'bg-[#1e1e1e]'} `} 
         onClick={() => inputRef.current?.focus()}
         dir="ltr" 
       >
@@ -343,12 +356,19 @@ const App: React.FC = () => {
   );
 
   const ActivityBar = () => (
-      <div className={`w-14 flex flex-col items-center py-4 gap-6 border-e z-20 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-sm'}`}>
+      <div className={`
+          flex md:flex-col flex-row items-center md:py-4 py-0 md:gap-6 justify-around md:justify-start
+          w-full md:w-16 md:h-full h-16
+          fixed md:relative bottom-0 left-0 z-50
+          border-t md:border-t-0 md:border-e 
+          ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:shadow-sm'}
+      `}>
+         {/* Logo / Home */}
         <button onClick={() => handleViewChange('home')} className={`p-2 rounded-xl transition-all ${view === 'home' ? 'bg-emerald-100 text-emerald-600' : (isDarkMode ? 'text-emerald-500 hover:bg-emerald-500/20' : 'text-emerald-600 hover:bg-emerald-50')}`} title={t.home}>
             <Home size={22} />
         </button>
         
-        <div className={`w-8 h-[1px] ${isDarkMode ? 'bg-emerald-900/50' : 'bg-slate-200'}`} />
+        <div className={`hidden md:block w-8 h-[1px] ${isDarkMode ? 'bg-emerald-900/50' : 'bg-slate-200'}`} />
         
         <button onClick={() => handleViewChange('ide')} className={`p-2 rounded-xl transition-all ${view === 'ide' ? 'bg-gradient-to-br from-emerald-600 to-emerald-500 text-white shadow-lg' : (isDarkMode ? 'text-slate-400 hover:text-emerald-500' : 'text-slate-400 hover:text-emerald-600')}`} title={t.project}>
             <FolderOpen size={22} />
@@ -362,17 +382,17 @@ const App: React.FC = () => {
             <Book size={22} />
         </button>
         
-        <div className="flex-1" />
+        <div className="flex-1 hidden md:block" />
 
          <button 
             onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
-            className={`p-2 rounded-xl font-bold flex items-center justify-center transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-400' : 'hover:bg-emerald-50 text-emerald-700'}`}
+            className={`hidden md:flex p-2 rounded-xl font-bold items-center justify-center transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-400' : 'hover:bg-emerald-50 text-emerald-700'}`}
             title="Switch Language"
         >
             <span className="text-xs">{lang === 'en' ? 'AR' : 'EN'}</span>
         </button>
         
-        <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-xl hover:bg-slate-700/20 transition-colors" title="Toggle Theme">
+        <button onClick={() => setIsDarkMode(!isDarkMode)} className="hidden md:block p-2 rounded-xl hover:bg-slate-700/20 transition-colors" title="Toggle Theme">
             {isDarkMode ? <Sun size={22} className="text-amber-400" /> : <Moon size={22} className="text-emerald-700" />}
         </button>
       </div>
@@ -399,97 +419,81 @@ const App: React.FC = () => {
                         className={`p-2 rounded-lg font-bold flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-emerald-900/50 text-emerald-400' : 'hover:bg-emerald-50 text-emerald-700'}`}
                     >
                         <Languages size={18} />
-                        {lang === 'en' ? 'العربية' : 'English'}
+                        <span className="hidden sm:inline">{lang === 'en' ? 'العربية' : 'English'}</span>
                     </button>
                     <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-emerald-500/20 transition-colors">
                         {isDarkMode ? <Sun className="text-amber-400" /> : <Moon className="text-emerald-700" />}
                     </button>
                 </div>
             </nav>
-            <Landing onStart={() => handleViewChange('ide')} onDocs={() => handleViewChange('docs')} isDarkMode={isDarkMode} lang={lang} />
+            <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
+                <Landing onStart={() => handleViewChange('ide')} onDocs={() => handleViewChange('docs')} isDarkMode={isDarkMode} lang={lang} />
+            </div>
+             <ActivityBar />
         </div>
       );
   }
 
   if (view === 'docs') {
       return (
-        <div className={rootClass} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-             <Docs onBack={() => handleViewChange('home')} isDarkMode={isDarkMode} lang={lang} />
+        <div className={`flex h-screen flex-col md:flex-row ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'} ${lang === 'ar' ? 'font-ar' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+             <ActivityBar />
+             <div className="flex-1 overflow-hidden pb-16 md:pb-0 h-full">
+                <Docs onBack={() => handleViewChange('home')} isDarkMode={isDarkMode} lang={lang} />
+             </div>
         </div>
       );
   }
 
   return (
-    <div className={`flex h-screen overflow-hidden ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'} ${lang === 'ar' ? 'font-ar' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+    <div className={`flex h-screen flex-col md:flex-row overflow-hidden ${isDarkMode ? 'bg-[#0a1f13] text-slate-100' : 'bg-slate-50 text-slate-900'} ${lang === 'ar' ? 'font-ar' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       
       <ActivityBar />
 
-      {/* LEARNING MODE */}
-      {view === 'learn' && (
-          <LearningMode
-            completedLessons={completedLessons}
-            currentLessonId={currentLessonId}
-            onSelectLesson={handleLessonSelect}
-            onCompleteLesson={(id) => setCompletedLessons(prev => [...prev, id])}
-            code={code}
-            setCode={handleCodeChange}
-            output={output}
-            onRun={startExecution}
-            onStop={stopExecution}
-            isRunning={isRunning}
-            isDarkMode={isDarkMode}
-            lang={lang}
-          >
-              <ConsoleComponent />
-          </LearningMode>
-      )}
+      <div className="flex-1 flex flex-col h-full overflow-hidden pb-16 md:pb-0 relative">
+        {/* LEARNING MODE */}
+        {view === 'learn' && (
+            <LearningMode
+                completedLessons={completedLessons}
+                currentLessonId={currentLessonId}
+                onSelectLesson={handleLessonSelect}
+                onCompleteLesson={(id) => setCompletedLessons(prev => [...prev, id])}
+                code={code}
+                setCode={handleCodeChange}
+                output={output}
+                onRun={startExecution}
+                onStop={stopExecution}
+                isRunning={isRunning}
+                isDarkMode={isDarkMode}
+                lang={lang}
+            >
+                <ConsoleComponent />
+            </LearningMode>
+        )}
 
-      {/* IDE MODE */}
-      {view === 'ide' && (
-        <>
-            {/* Sidebar: File Explorer */}
-            <div className={`w-64 flex flex-col border-e transition-colors ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
-                <FileExplorer 
-                    files={files} 
-                    activeFileId={activeFileId}
-                    onFileSelect={handleFileSelect}
-                    onCreateFile={createFile}
-                    onCreateFolder={createFolder}
-                    onDelete={deleteItem}
-                    isDarkMode={isDarkMode}
-                    lang={lang}
-                />
-            </div>
-
-            <div className="flex-1 flex flex-col h-full min-w-0">
-                {/* IDE Toolbar */}
+        {/* IDE MODE */}
+        {view === 'ide' && (
+            <>
+                {/* Mobile Header */}
                 <header className={`flex justify-between items-center px-4 py-2 border-b h-14 shrink-0 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-sm'}`}>
-                    <div className="flex items-center gap-3">
-                        <span className={`text-sm font-semibold flex items-center gap-2 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                            <FolderOpen size={16} />
-                            {files.find(f => f.id === activeFileId)?.name || 'No file selected'}
+                    <div className="flex items-center gap-2">
+                        <button 
+                            className={`p-2 rounded-lg lg:hidden ${isDarkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}
+                            onClick={() => setIsMobileExplorerOpen(true)}
+                        >
+                            <Menu size={18} />
+                        </button>
+                        <span className={`text-sm font-semibold flex items-center gap-2 truncate max-w-[150px] ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                            <FolderOpen size={16} className="shrink-0" />
+                            {files.find(f => f.id === activeFileId)?.name || 'No file'}
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         {isRunning ? (
                             <>
-                                {isPaused ? (
-                                    <>
-                                        <button onClick={stepOver} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white rounded-md font-medium text-sm transition-colors shadow-sm">
-                                            <StepForward size={16} /> {t.step}
-                                        </button>
-                                        <button onClick={resumeExecution} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-medium text-sm transition-colors shadow-sm">
-                                            <Play size={16} fill="currentColor" /> {t.resume}
-                                        </button>
-                                    </>
-                                ) : (
-                                    <button onClick={() => setIsPaused(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white rounded-md font-medium text-sm transition-colors shadow-sm">
-                                        <Pause size={16} fill="currentColor" /> {t.pause}
-                                    </button>
-                                )}
-                                <button onClick={stopExecution} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-md font-medium text-sm transition-colors shadow-sm">
-                                    <Trash2 size={16} /> {t.stop}
+                                <button onClick={stopExecution} className="p-2 bg-red-600 text-white rounded-md shadow-sm">
+                                    <Trash2 size={16} />
                                 </button>
                             </>
                         ) : (
@@ -497,81 +501,148 @@ const App: React.FC = () => {
                                 onClick={startExecution} 
                                 disabled={!activeFileId} 
                                 className={`
-                                    flex items-center gap-2 px-6 py-1.5 rounded-full font-bold text-sm transition-all shadow-md transform active:scale-95
+                                    flex items-center gap-2 px-4 py-1.5 rounded-full font-bold text-sm transition-all shadow-md
                                     ${!activeFileId 
                                         ? 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50' 
-                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-emerald-500/25'}
+                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white'}
                                 `}
                             >
                                 <Play size={16} fill="currentColor" className={lang === 'ar' ? 'rotate-180' : ''} /> 
-                                {t.run}
+                                <span className="hidden sm:inline">{t.run}</span>
                             </button>
                         )}
+                        <button 
+                             onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}
+                             className={`md:hidden p-2 rounded-lg font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}
+                        >
+                             {lang === 'en' ? 'AR' : 'EN'}
+                        </button>
                     </div>
                 </header>
 
-                {/* IDE Layout: Code + Output */}
-                <div className="flex-1 flex flex-col lg:flex-row min-h-0">
-                    {/* Editor */}
-                    <div className={`flex-[2] relative min-h-0 border-e ${isDarkMode ? 'border-emerald-900/30' : 'border-slate-200'}`} dir="ltr">
-                        {activeFileId ? (
-                            <CodeEditor
-                                value={code}
-                                onChange={handleCodeChange}
-                                breakpoints={breakpoints}
-                                onToggleBreakpoint={toggleBreakpoint}
-                                activeLine={activeLine}
-                                isDarkMode={isDarkMode}
-                            />
-                        ) : (
-                            <div className={`flex flex-col items-center justify-center h-full ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                                <div className="bg-emerald-500/10 p-4 rounded-full mb-4">
-                                    <RotateCcw size={32} className="text-emerald-500 opacity-50" />
-                                </div>
-                                <p>{t.noFile}</p>
-                            </div>
-                        )}
+                <div className="flex-1 flex flex-row h-full overflow-hidden relative">
+                    
+                    {/* Desktop File Explorer */}
+                    <div className={`hidden lg:flex w-64 flex-col border-e h-full transition-colors ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
+                        <FileExplorer 
+                            files={files} 
+                            activeFileId={activeFileId}
+                            onFileSelect={handleFileSelect}
+                            onCreateFile={createFile}
+                            onCreateFolder={createFolder}
+                            onDelete={deleteItem}
+                            isDarkMode={isDarkMode}
+                            lang={lang}
+                        />
                     </div>
 
-                    {/* Right Panel: Terminal & Vars */}
-                    <div className={`flex-1 lg:max-w-md flex flex-col min-h-0 transition-colors ${isDarkMode ? 'bg-[#05110a]' : 'bg-white'}`}>
-                        <ConsoleComponent />
-                        
-                        {/* Variables */}
-                        <div className={`h-1/3 flex flex-col border-t ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-white border-slate-200'}`}>
-                            <div className={`px-4 py-2 border-b flex items-center gap-2 shrink-0 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
-                                <Bug size={14} className="text-amber-500" />
-                                <span className={`text-xs font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t.variables}</span>
-                            </div>
-                            <div className="flex-1 p-0 overflow-y-auto custom-scrollbar">
-                                <table className="w-full text-left text-sm font-mono border-collapse" dir="ltr">
-                                    <thead className={`text-xs sticky top-0 ${isDarkMode ? 'bg-[#0f281a]/90 text-slate-400' : 'bg-slate-50/90 text-slate-500'}`}>
-                                        <tr>
-                                            <th className={`p-2 border-b border-inherit ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{t.name}</th>
-                                            <th className={`p-2 border-b border-inherit ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{t.type}</th>
-                                            <th className={`p-2 border-b border-inherit ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{t.value}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Array.from(variables.entries()).map(([name, val]) => (
-                                            <tr key={name} className={`border-b transition-colors ${isDarkMode ? 'border-emerald-900/20 hover:bg-emerald-900/10' : 'border-slate-100 hover:bg-slate-50'}`}>
-                                                <td className="p-2 text-emerald-500 font-semibold">{name}</td>
-                                                <td className="p-2 text-amber-600 text-xs">{val.type}</td>
-                                                <td className={`p-2 break-all ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{renderValue(val)}</td>
+                    {/* Mobile File Explorer Drawer */}
+                    {isMobileExplorerOpen && (
+                        <div className="absolute inset-0 z-40 lg:hidden flex" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileExplorerOpen(false)}></div>
+                             <div className={`relative w-4/5 max-w-xs h-full shadow-2xl flex flex-col ${isDarkMode ? 'bg-[#0a1f13]' : 'bg-slate-50'}`}>
+                                <div className="p-4 flex justify-between items-center border-b border-inherit">
+                                    <span className="font-bold">{t.project}</span>
+                                    <button onClick={() => setIsMobileExplorerOpen(false)}><X /></button>
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    <FileExplorer 
+                                        files={files} 
+                                        activeFileId={activeFileId}
+                                        onFileSelect={handleFileSelect}
+                                        onCreateFile={createFile}
+                                        onCreateFolder={createFolder}
+                                        onDelete={deleteItem}
+                                        isDarkMode={isDarkMode}
+                                        lang={lang}
+                                    />
+                                </div>
+                             </div>
+                        </div>
+                    )}
+
+                    {/* Main Work Area */}
+                    <div className="flex-1 flex flex-col h-full min-w-0">
+                         {/* Mobile Tab Switcher (Editor vs Console) */}
+                         <div className="lg:hidden flex border-b text-sm font-medium">
+                            <button 
+                                onClick={() => setActiveMobileTab('editor')}
+                                className={`flex-1 py-2 text-center border-b-2 ${activeMobileTab === 'editor' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500'}`}
+                            >
+                                Code
+                            </button>
+                            <button 
+                                onClick={() => setActiveMobileTab('console')}
+                                className={`flex-1 py-2 text-center border-b-2 flex items-center justify-center gap-2 ${activeMobileTab === 'console' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500'}`}
+                            >
+                                {t.terminal}
+                                {(output.length > 0 || errors.length > 0) && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
+                            </button>
+                         </div>
+
+                        {/* Editor Container */}
+                        <div className={`flex-1 relative ${activeMobileTab === 'editor' ? 'block' : 'hidden lg:block'}`} dir="ltr">
+                             {activeFileId ? (
+                                <CodeEditor
+                                    value={code}
+                                    onChange={handleCodeChange}
+                                    breakpoints={breakpoints}
+                                    onToggleBreakpoint={toggleBreakpoint}
+                                    activeLine={activeLine}
+                                    isDarkMode={isDarkMode}
+                                />
+                            ) : (
+                                <div className={`flex flex-col items-center justify-center h-full ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                                    <FolderOpen size={48} className="opacity-20 mb-4" />
+                                    <p>{t.noFile}</p>
+                                </div>
+                            )}
+                        </div>
+
+                         {/* Console Container */}
+                         <div className={`
+                             lg:w-1/3 lg:border-s lg:flex lg:flex-col
+                             ${activeMobileTab === 'console' ? 'flex-1 flex flex-col' : 'hidden'}
+                             ${isDarkMode ? 'border-emerald-900/30 bg-[#05110a]' : 'border-slate-200 bg-white'}
+                         `}>
+                            <ConsoleComponent />
+                            
+                            {/* Variables (Visible on Desktop or Mobile Console Tab) */}
+                            <div className={`h-1/3 min-h-[150px] flex flex-col border-t ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-white border-slate-200'}`}>
+                                <div className={`px-4 py-2 border-b flex items-center gap-2 shrink-0 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
+                                    <Bug size={14} className="text-amber-500" />
+                                    <span className={`text-xs font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t.variables}</span>
+                                </div>
+                                <div className="flex-1 p-0 overflow-y-auto custom-scrollbar">
+                                    <table className="w-full text-left text-sm font-mono border-collapse" dir="ltr">
+                                        <thead className={`text-xs sticky top-0 ${isDarkMode ? 'bg-[#0f281a]/90 text-slate-400' : 'bg-slate-50/90 text-slate-500'}`}>
+                                            <tr>
+                                                <th className="p-2 border-b border-inherit w-1/3">{t.name}</th>
+                                                <th className="p-2 border-b border-inherit w-1/3">{t.type}</th>
+                                                <th className="p-2 border-b border-inherit w-1/3">{t.value}</th>
                                             </tr>
-                                        ))}
-                                        {variables.size === 0 && (
-                                            <tr><td colSpan={3} className="p-4 text-center text-slate-400 italic">{t.noVars}</td></tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {Array.from(variables.entries()).map(([name, val]) => (
+                                                <tr key={name} className={`border-b transition-colors ${isDarkMode ? 'border-emerald-900/20 hover:bg-emerald-900/10' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                                    <td className="p-2 text-emerald-500 font-semibold">{name}</td>
+                                                    <td className="p-2 text-amber-600 text-xs">{val.type}</td>
+                                                    <td className={`p-2 break-all ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{renderValue(val)}</td>
+                                                </tr>
+                                            ))}
+                                            {variables.size === 0 && (
+                                                <tr><td colSpan={3} className="p-4 text-center text-slate-400 italic">{t.noVars}</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </>
-      )}
+            </>
+        )}
+      </div>
     </div>
   );
 };
