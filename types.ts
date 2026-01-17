@@ -194,7 +194,7 @@ export interface ExecutionResult {
 
 // --- IDE TYPES ---
 
-export type ViewState = 'home' | 'ide' | 'docs';
+export type ViewState = 'home' | 'ide' | 'docs' | 'learn';
 
 export interface FileNode {
   id: string;
@@ -228,4 +228,23 @@ export interface DocPage {
 export interface DocCategory {
   title: string;
   pages: DocPage[];
+}
+
+// --- LEARNING TYPES ---
+
+export interface LessonContent {
+  title: string;
+  category: string;
+  description: DocBlock[];
+}
+
+export interface Lesson {
+  id: string;
+  content: {
+    en: LessonContent;
+    ar: LessonContent;
+  };
+  initialCode: string;
+  // Validation returns bilingual feedback
+  validate: (code: string, output: string[]) => { success: boolean; message?: { en: string; ar: string } };
 }

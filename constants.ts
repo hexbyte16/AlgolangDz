@@ -1,4 +1,4 @@
-import { FileNode, DocCategory } from "./types";
+import { FileNode, DocCategory, Lesson } from "./types";
 
 export const INITIAL_FILES: FileNode[] = [
   { id: 'root', name: 'Project', type: 'folder', parentId: null, isOpen: true },
@@ -84,6 +84,7 @@ export const TRANSLATIONS = {
     home: "Home",
     project: "Project",
     docs: "Docs",
+    learn: "Learn",
     run: "RUN CODE",
     pause: "Pause",
     resume: "Resume",
@@ -94,6 +95,7 @@ export const TRANSLATIONS = {
     welcome: "Welcome to AlgoLang",
     welcomeSub: "The educational language designed for algorithmic logic.",
     startCoding: "Start Coding",
+    startLearning: "Start Learning",
     documentation: "Documentation",
     realTimeTerm: "Real-time Terminal",
     realTimeTermDesc: "Experience authentic I/O operations with a built-in interactive console.",
@@ -114,11 +116,18 @@ export const TRANSLATIONS = {
     previous: "Previous",
     next: "Next",
     enterName: "Name...",
+    checkAnswer: "Check Answer",
+    nextLesson: "Next Lesson",
+    lessonComplete: "Lesson Complete!",
+    lessonFailed: "Keep Trying",
+    tryAgain: "Try Again",
+    locked: "Locked"
   },
   ar: {
     home: "الرئيسية",
     project: "المشروع",
     docs: "التوثيق",
+    learn: "تعلم",
     run: "تشغيل الكود",
     pause: "إيقاف مؤقت",
     resume: "استكمال",
@@ -129,6 +138,7 @@ export const TRANSLATIONS = {
     welcome: "مرحباً بكم في AlgoLang",
     welcomeSub: "اللغة التعليمية المصممة لتعلم الخوارزميات والمنطق البرمجي.",
     startCoding: "ابدأ البرمجة",
+    startLearning: "ابدأ التعلم",
     documentation: "التوثيق",
     realTimeTerm: "محطة طرفية فورية",
     realTimeTermDesc: "جرب عمليات الإدخال والإخراج الحقيقية مع وحدة تحكم تفاعلية مدمجة.",
@@ -149,8 +159,299 @@ export const TRANSLATIONS = {
     previous: "السابق",
     next: "التالي",
     enterName: "الاسم...",
+    checkAnswer: "تحقق من الإجابة",
+    nextLesson: "الدرس التالي",
+    lessonComplete: "اكتمل الدرس!",
+    lessonFailed: "حاول مرة أخرى",
+    tryAgain: "أعد المحاولة",
+    locked: "مغلق"
   }
 };
+
+export const LESSONS: Lesson[] = [
+  {
+    id: "l1",
+    content: {
+      en: {
+        title: "Hello World",
+        category: "Basics",
+        description: [
+          { type: 'text', value: "Welcome to your first algorithm! The first step in any language is learning how to output text to the screen." },
+          { type: 'text', value: "In AlgoLang, we use the 'Write' command to display information." },
+          { type: 'code', value: 'Write("Hello")' },
+          { type: 'note', variant: 'tip', value: "Strings of text must always be inside double quotes." },
+          { type: 'heading', level: 3, value: "Your Task" },
+          { type: 'text', value: "Complete the algorithm to display exactly: Hello AlgoLang" }
+        ]
+      },
+      ar: {
+        title: "مرحباً بالعالم",
+        category: "الأساسيات",
+        description: [
+          { type: 'text', value: "مرحباً بك في أول خوارزمية! الخطوة الأولى في تعلم أي لغة هي معرفة كيفية عرض النصوص على الشاشة." },
+          { type: 'text', value: "في AlgoLang، نستخدم الأمر 'Write' لعرض المعلومات." },
+          { type: 'code', value: 'Write("Hello")' },
+          { type: 'note', variant: 'tip', value: "النصوص (Strings) يجب أن تكون دائماً داخل علامات اقتباس مزدوجة." },
+          { type: 'heading', level: 3, value: "مهمتك" },
+          { type: 'text', value: "أكمل الخوارزمية لعرض الجملة التالية تماماً: Hello AlgoLang" }
+        ]
+      }
+    },
+    initialCode: `Algorithm FirstProgram
+Begin
+  // Write your code here
+  
+End`,
+    validate: (code, output) => {
+      if (!code.toLowerCase().includes("write")) 
+        return { success: false, message: { en: "You must use the 'Write' command.", ar: "يجب عليك استخدام الأمر 'Write'." } };
+      
+      const combinedOutput = output.join(" ");
+      if (combinedOutput.includes("Hello AlgoLang")) 
+        return { success: true };
+      
+      return { success: false, message: { en: "Expected output: Hello AlgoLang", ar: "المخرجات المتوقعة: Hello AlgoLang" } };
+    }
+  },
+  {
+    id: "l2",
+    content: {
+      en: {
+        title: "Variables",
+        category: "Basics",
+        description: [
+          { type: 'text', value: "Variables are like boxes where we store data. Before using a variable, you must declare it in the 'Var' section." },
+          { type: 'code', value: `Var
+  age : Integer
+Begin
+  age <- 25
+  Write(age)
+End` },
+          { type: 'heading', level: 3, value: "Your Task" },
+          { type: 'text', value: "1. Declare a variable named 'score' of type Integer." },
+          { type: 'text', value: "2. Assign the value 100 to it." },
+          { type: 'text', value: "3. Write the value of 'score' to the console." }
+        ]
+      },
+      ar: {
+        title: "المتغيرات",
+        category: "الأساسيات",
+        description: [
+          { type: 'text', value: "المتغيرات تشبه الصناديق التي نخزن فيها البيانات. قبل استخدام المتغير، يجب التصريح عنه في قسم 'Var'." },
+          { type: 'code', value: `Var
+  age : Integer
+Begin
+  age <- 25
+  Write(age)
+End` },
+          { type: 'heading', level: 3, value: "مهمتك" },
+          { type: 'text', value: "1. صرح عن متغير باسم 'score' من نوع Integer." },
+          { type: 'text', value: "2. أسند القيمة 100 إليه." },
+          { type: 'text', value: "3. اعرض قيمة 'score' باستخدام الأمر Write." }
+        ]
+      }
+    },
+    initialCode: `Algorithm Variables
+Var
+  // Declare variable here
+
+Begin
+  // Assign and Write here
+
+End`,
+    validate: (code, output) => {
+      const lowerCode = code.toLowerCase();
+      if (!lowerCode.includes("score : integer") && !lowerCode.includes("score:integer") && !lowerCode.includes("score: integer")) 
+        return { success: false, message: { en: "Did you declare 'score : Integer'?", ar: "هل قمت بالتصريح عن 'score : Integer'؟" } };
+      if (!output.some(o => o.includes("100"))) 
+        return { success: false, message: { en: "The program should output the number 100.", ar: "يجب أن يعرض البرنامج الرقم 100." } };
+      return { success: true };
+    }
+  },
+  {
+    id: "l3",
+    content: {
+      en: {
+        title: "Input (Read)",
+        category: "Interaction",
+        description: [
+          { type: 'text', value: "To make programs interactive, we use 'Read()'. This waits for the user to type something." },
+          { type: 'code', value: `Write("Enter name:")
+Read(myName)` },
+          { type: 'heading', level: 3, value: "Your Task" },
+          { type: 'text', value: "Write a program that asks the user for a number, reads it into a variable 'x', and then displays 'You entered:' followed by the number." }
+        ]
+      },
+      ar: {
+        title: "الإدخال (Read)",
+        category: "التفاعل",
+        description: [
+          { type: 'text', value: "لجعل البرامج تفاعلية، نستخدم 'Read()'. هذا الأمر ينتظر المستخدم ليكتب شيئاً." },
+          { type: 'code', value: `Write("Enter name:")
+Read(myName)` },
+          { type: 'heading', level: 3, value: "مهمتك" },
+          { type: 'text', value: "اكتب برنامجاً يطلب من المستخدم رقماً، يقرأه في متغير 'x'، ثم يعرض 'You entered:' متبوعاً بالرقم." }
+        ]
+      }
+    },
+    initialCode: `Algorithm InputTest
+Var
+  x : Integer
+Begin
+  Write("Enter a number:")
+  
+End`,
+    validate: (code, output) => {
+      if (!code.toLowerCase().includes("read(x)")) 
+        return { success: false, message: { en: "Use Read(x) to get user input.", ar: "استخدم Read(x) للحصول على إدخال المستخدم." } };
+      
+      const joined = output.join(" ");
+      if (joined.toLowerCase().includes("you entered")) return { success: true };
+      return { success: false, message: { en: "Output should contain 'You entered:'", ar: "يجب أن تحتوي المخرجات على 'You entered:'" } };
+    }
+  },
+  {
+    id: "l4",
+    content: {
+      en: {
+        title: "If Statements",
+        category: "Control Flow",
+        description: [
+          { type: 'text', value: "We use 'If' to make decisions. The code inside 'Then' only runs if the condition is true." },
+          { type: 'code', value: `If score >= 10 Then
+  Write("Pass")
+Else
+  Write("Fail")
+EndIf` },
+          { type: 'heading', level: 3, value: "Your Task" },
+          { type: 'text', value: "Create a variable 'temperature'. Assign it the value 30. Write an If statement: if temperature is greater than 25, Write 'Hot', otherwise Write 'Cold'." }
+        ]
+      },
+      ar: {
+        title: "الجمل الشرطية (If)",
+        category: "التحكم",
+        description: [
+          { type: 'text', value: "نستخدم 'If' لاتخاذ القرارات. الكود داخل 'Then' يعمل فقط إذا كان الشرط صحيحاً." },
+          { type: 'code', value: `If score >= 10 Then
+  Write("Pass")
+Else
+  Write("Fail")
+EndIf` },
+          { type: 'heading', level: 3, value: "مهمتك" },
+          { type: 'text', value: "أنشئ متغيراً 'temperature'. أسند له القيمة 30. اكتب جملة If: إذا كانت الحرارة أكبر من 25، اكتب 'Hot'، وإلا اكتب 'Cold'." }
+        ]
+      }
+    },
+    initialCode: `Algorithm Weather
+Var
+  temperature : Integer
+Begin
+  temperature <- 30
+  
+End`,
+    validate: (code, output) => {
+       const lower = code.toLowerCase();
+       if (!lower.includes("if") || !lower.includes("then") || !lower.includes("endif")) 
+          return { success: false, message: { en: "You need a complete If...Then...EndIf structure.", ar: "تحتاج إلى هيكل If...Then...EndIf كامل." } };
+       if (!output.some(o => o.includes("Hot"))) 
+          return { success: false, message: { en: "With temperature 30, it should output 'Hot'.", ar: "مع درجة حرارة 30، يجب أن تكون النتيجة 'Hot'." } };
+       return { success: true };
+    }
+  },
+  {
+    id: "l5",
+    content: {
+      en: {
+        title: "For Loops",
+        category: "Control Flow",
+        description: [
+          { type: 'text', value: "A 'For' loop repeats code a specific number of times." },
+          { type: 'code', value: `For i <- 1 to 5 step 1 do
+  Write(i)
+EndFor` },
+          { type: 'heading', level: 3, value: "Your Task" },
+          { type: 'text', value: "Write a loop that prints the numbers from 1 to 5." }
+        ]
+      },
+      ar: {
+        title: "حلقات التكرار (For)",
+        category: "التحكم",
+        description: [
+          { type: 'text', value: "حلقة 'For' تكرر الكود عدداً محدداً من المرات." },
+          { type: 'code', value: `For i <- 1 to 5 step 1 do
+  Write(i)
+EndFor` },
+          { type: 'heading', level: 3, value: "مهمتك" },
+          { type: 'text', value: "اكتب حلقة تقوم بطباعة الأرقام من 1 إلى 5." }
+        ]
+      }
+    },
+    initialCode: `Algorithm Counter
+Var
+  i : Integer
+Begin
+  
+End`,
+    validate: (code, output) => {
+       if (!code.toLowerCase().includes("for") || !code.toLowerCase().includes("endfor")) 
+         return { success: false, message: { en: "Use a For...EndFor loop.", ar: "استخدم حلقة For...EndFor." } };
+       
+       const nums = output.filter(o => /^\d+$/.test(o.trim()) || o.includes("1") || o.includes("5"));
+       if (nums.length < 5) 
+         return { success: false, message: { en: "Make sure to print numbers 1 through 5.", ar: "تأكد من طباعة الأرقام من 1 إلى 5." } };
+       return { success: true };
+    }
+  },
+  {
+    id: "l6",
+    content: {
+      en: {
+        title: "Arrays",
+        category: "Advanced",
+        description: [
+          { type: 'text', value: "Arrays hold multiple values. You access them using an index, starting at 0." },
+          { type: 'code', value: `Var
+  nums : Array [3] of Integer
+Begin
+  nums[0] <- 10
+  Write(nums[0])
+End` },
+          { type: 'heading', level: 3, value: "Your Task" },
+          { type: 'text', value: "Declare an array 'A' of size 3 (Integer). Set the first element (index 0) to 5, the second (index 1) to 10. Then Write the sum of both." }
+        ]
+      },
+      ar: {
+        title: "المصفوفات (Arrays)",
+        category: "متقدم",
+        description: [
+          { type: 'text', value: "المصفوفات تخزن قيماً متعددة. يمكنك الوصول إليها باستخدام فهرس (Index) يبدأ من 0." },
+          { type: 'code', value: `Var
+  nums : Array [3] of Integer
+Begin
+  nums[0] <- 10
+  Write(nums[0])
+End` },
+          { type: 'heading', level: 3, value: "مهمتك" },
+          { type: 'text', value: "صرح عن مصفوفة 'A' بحجم 3 (Integer). اجعل العنصر الأول (فهرس 0) يساوي 5، والثاني (فهرس 1) يساوي 10. ثم اعرض مجموع الرقمين." }
+        ]
+      }
+    },
+    initialCode: `Algorithm MyArray
+Var
+  // Declare array A here
+  
+Begin
+  
+End`,
+    validate: (code, output) => {
+       if (!code.toLowerCase().includes("array")) 
+          return { success: false, message: { en: "Declare an array variable.", ar: "صرح عن متغير مصفوفة." } };
+       if (!output.some(o => o.includes("15"))) 
+          return { success: false, message: { en: "The sum of 5 and 10 is 15. Make sure to output it.", ar: "مجموع 5 و 10 هو 15. تأكد من عرضه." } };
+       return { success: true };
+    }
+  }
+];
 
 export const DOCS_DATA_EN: DocCategory[] = [
   {
