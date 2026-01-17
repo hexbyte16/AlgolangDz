@@ -10,16 +10,41 @@ import { Landing } from './components/Landing';
 import { Docs } from './components/Docs';
 import { FileExplorer } from './components/FileExplorer';
 
+const STORAGE_KEYS = {
+  FILES: 'algolang_files_v1',
+  ACTIVE_FILE: 'algolang_active_file_v1',
+  THEME: 'algolang_theme_v1',
+  LANG: 'algolang_lang_v1'
+};
+
 const App: React.FC = () => {
+  // Helper to safely load state from localStorage
+  const loadState = <T,>(key: string, fallback: T): T => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : fallback;
+    } catch (e) {
+      console.warn(`Failed to load ${key} from localStorage`, e);
+      return fallback;
+    }
+  };
+
   // --- GLOBAL STATE ---
   const [view, setView] = useState<ViewState>('home');
-  const [isDarkMode, setIsDarkMode] = useState(false); // Default to Light Mode
-  const [lang, setLang] = useState<'en' | 'ar'>('en');
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => loadState(STORAGE_KEYS.THEME, false));
+  const [lang, setLang] = useState<'en' | 'ar'>(() => loadState(STORAGE_KEYS.LANG, 'en'));
   
   // --- FILE SYSTEM STATE ---
-  const [files, setFiles] = useState<FileNode[]>(INITIAL_FILES);
-  const [activeFileId, setActiveFileId] = useState<string>('main');
-  const [code, setCode] = useState<string>(INITIAL_FILES.find(f => f.id === 'main')?.content || '');
+  const [files, setFiles] = useState<FileNode[]>(() => loadState(STORAGE_KEYS.FILES, INITIAL_FILES));
+  const [activeFileId, setActiveFileId] = useState<string>(() => loadState(STORAGE_KEYS.ACTIVE_FILE, 'main'));
+  
+  // Initialize code from the persisted files and activeFileId
+  const [code, setCode] = useState<string>(() => {
+      const currentFiles: FileNode[] = loadState(STORAGE_KEYS.FILES, INITIAL_FILES);
+      const currentActiveId: string = loadState(STORAGE_KEYS.ACTIVE_FILE, 'main');
+      const file = currentFiles.find(f => f.id === currentActiveId);
+      return file?.content || '';
+  });
 
   // --- EXECUTION STATE ---
   const [output, setOutput] = useState<string[]>([]);
@@ -45,6 +70,12 @@ const App: React.FC = () => {
 
   // --- EFFECTS ---
   
+  // Persistence Effects
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.THEME, JSON.stringify(isDarkMode)); }, [isDarkMode]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.LANG, JSON.stringify(lang)); }, [lang]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(files)); }, [files]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.ACTIVE_FILE, JSON.stringify(activeFileId)); }, [activeFileId]);
+
   // Sync Document Attributes
   useEffect(() => {
     document.documentElement.lang = lang;
