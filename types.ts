@@ -204,3 +204,28 @@ export interface FileNode {
   content?: string;
   isOpen?: boolean;
 }
+
+// --- DOCS TYPES ---
+
+export interface DocBlock {
+  type: 'text' | 'code' | 'note' | 'list' | 'heading' | 'table';
+  value?: string; // for text, code, heading
+  items?: string[]; // for list
+  headers?: string[]; // for table
+  rows?: string[][]; // for table
+  label?: string; // for code label
+  variant?: 'info' | 'warning' | 'tip'; // for note
+  level?: number; // for heading
+}
+
+export interface DocPage {
+  id: string;
+  title: string;
+  description: string;
+  blocks: DocBlock[];
+}
+
+export interface DocCategory {
+  title: string;
+  pages: DocPage[];
+}
