@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Trash2, AlertTriangle, Terminal, Pause, StepForward, Bug, Sun, Moon, Home, FolderOpen, Book, RotateCcw, Languages, GraduationCap, Menu, X } from 'lucide-react';
+import { Play, Trash2, AlertTriangle, Terminal, Pause, StepForward, Bug, Sun, Moon, Home, FolderOpen, Book, RotateCcw, Languages, GraduationCap, Menu, X, GripVertical, GripHorizontal } from 'lucide-react';
 import { Lexer } from './services/algo/lexer';
 import { Parser } from './services/algo/parser';
 import { Interpreter } from './services/algo/interpreter';
@@ -50,6 +50,13 @@ const App: React.FC = () => {
   const [isMobileExplorerOpen, setIsMobileExplorerOpen] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<'editor' | 'console'>('editor');
 
+  // --- RESIZING STATE (IDE) ---
+  const [sidebarWidth, setSidebarWidth] = useState(250);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(30); // percentage
+  const [isDraggingSidebar, setIsDraggingSidebar] = useState(false);
+  const [isDraggingBottom, setIsDraggingBottom] = useState(false);
+  const ideContainerRef = useRef<HTMLDivElement>(null);
+
   // Initialize code
   const [code, setCode] = useState<string>(() => {
       const currentFiles: FileNode[] = loadState(STORAGE_KEYS.FILES, INITIAL_FILES);
@@ -96,6 +103,44 @@ const App: React.FC = () => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   }, [lang]);
+
+  // Handle IDE Resizing
+  useEffect(() => {
+      const handleMouseMove = (e: MouseEvent) => {
+          if (isDraggingSidebar) {
+              e.preventDefault();
+              const delta = lang === 'ar' ? -e.movementX : e.movementX;
+              setSidebarWidth(prev => Math.max(150, Math.min(prev + delta, 500)));
+          }
+          if (isDraggingBottom && ideContainerRef.current) {
+              e.preventDefault();
+              const containerRect = ideContainerRef.current.getBoundingClientRect();
+              const percentageDelta = (e.movementY / containerRect.height) * 100;
+              setBottomPanelHeight(prev => Math.max(10, Math.min(prev - percentageDelta, 80)));
+          }
+      };
+
+      const handleMouseUp = () => {
+          setIsDraggingSidebar(false);
+          setIsDraggingBottom(false);
+      };
+
+      if (isDraggingSidebar || isDraggingBottom) {
+          document.addEventListener('mousemove', handleMouseMove);
+          document.addEventListener('mouseup', handleMouseUp);
+          document.body.style.cursor = isDraggingSidebar ? 'col-resize' : 'row-resize';
+          document.body.style.userSelect = 'none';
+      } else {
+          document.body.style.cursor = 'default';
+          document.body.style.userSelect = 'auto';
+      }
+
+      return () => {
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+      };
+  }, [isDraggingSidebar, isDraggingBottom, lang]);
+
 
   // Sync Code changes to File System (Only in IDE mode)
   const handleCodeChange = (newCode: string) => {
@@ -467,8 +512,8 @@ const App: React.FC = () => {
 
         {/* VIEW: IDE (PROJECT) */}
         {view === 'ide' && (
-            <div className="flex flex-col h-full overflow-hidden">
-                {/* Mobile/Tablet IDE Header */}
+            <div className="flex flex-col h-full overflow-hidden relative">
+                {/* Header */}
                 <header className={`flex justify-between items-center px-4 py-2 border-b h-14 shrink-0 z-30 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200 shadow-sm'}`}>
                     <div className="flex items-center gap-2">
                         <button 
@@ -516,8 +561,11 @@ const App: React.FC = () => {
 
                 <div className="flex-1 flex flex-row h-full overflow-hidden relative">
                     
-                    {/* Desktop File Explorer (Sidebar) */}
-                    <div className={`hidden lg:flex w-64 flex-col border-e h-full transition-colors flex-shrink-0 ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
+                    {/* Desktop File Explorer (Resizable Sidebar) */}
+                    <div 
+                        style={{ width: sidebarWidth }}
+                        className={`hidden lg:flex flex-col border-e h-full transition-colors flex-shrink-0 overflow-hidden ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}
+                    >
                         <FileExplorer 
                             files={files} 
                             activeFileId={activeFileId}
@@ -528,6 +576,14 @@ const App: React.FC = () => {
                             isDarkMode={isDarkMode}
                             lang={lang}
                         />
+                    </div>
+
+                    {/* Resizer X */}
+                    <div 
+                        className={`hidden lg:flex w-1 cursor-col-resize hover:bg-emerald-500 transition-colors z-20 items-center justify-center group ${isDraggingSidebar ? 'bg-emerald-500' : (isDarkMode ? 'bg-[#0f281a] hover:bg-emerald-600' : 'bg-slate-200 hover:bg-emerald-400')}`}
+                        onMouseDown={() => setIsDraggingSidebar(true)}
+                    >
+                        <GripVertical size={12} className={`opacity-0 group-hover:opacity-100 ${isDarkMode ? 'text-white' : 'text-white'}`} />
                     </div>
 
                     {/* Mobile File Explorer (Drawer) */}
@@ -555,8 +611,9 @@ const App: React.FC = () => {
                         </div>
                     )}
 
-                    {/* IDE Content Area */}
-                    <div className="flex-1 flex flex-col h-full min-w-0">
+                    {/* IDE Content Area (Right Side) */}
+                    <div className="flex-1 flex flex-col h-full min-w-0" ref={ideContainerRef}>
+                         
                          {/* Mobile Tab Switcher */}
                          <div className="lg:hidden flex border-b text-sm font-medium shrink-0">
                             <button 
@@ -575,7 +632,10 @@ const App: React.FC = () => {
                          </div>
 
                         {/* Editor Container */}
-                        <div className={`flex-1 relative overflow-hidden ${activeMobileTab === 'editor' ? 'block' : 'hidden lg:block'}`} dir="ltr">
+                        <div 
+                            className={`relative overflow-hidden ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden lg:block lg:flex-1'}`} 
+                            dir="ltr"
+                        >
                              {activeFileId ? (
                                 <CodeEditor
                                     value={code}
@@ -593,16 +653,27 @@ const App: React.FC = () => {
                             )}
                         </div>
 
+                         {/* Resizer Y (Desktop Only) */}
+                         <div 
+                             className={`hidden lg:flex h-1 cursor-row-resize hover:bg-emerald-500 transition-colors z-20 items-center justify-center group ${isDraggingBottom ? 'bg-emerald-500' : (isDarkMode ? 'bg-[#0f281a] hover:bg-emerald-600' : 'bg-slate-200 hover:bg-emerald-400')}`}
+                             onMouseDown={() => setIsDraggingBottom(true)}
+                         >
+                             <GripHorizontal size={12} className={`opacity-0 group-hover:opacity-100 ${isDarkMode ? 'text-white' : 'text-white'}`} />
+                         </div>
+
                          {/* Console Container */}
-                         <div className={`
-                             lg:w-1/3 lg:border-s lg:flex lg:flex-col
-                             ${activeMobileTab === 'console' ? 'flex-1 flex flex-col' : 'hidden'}
-                             ${isDarkMode ? 'border-emerald-900/30 bg-[#05110a]' : 'border-slate-200 bg-white'}
-                         `}>
+                         <div 
+                             className={`
+                                 lg:flex lg:flex-col lg:border-t
+                                 ${activeMobileTab === 'console' ? 'flex-1 flex flex-col' : 'hidden'}
+                                 ${isDarkMode ? 'border-emerald-900/30 bg-[#05110a]' : 'border-slate-200 bg-white'}
+                             `}
+                             style={{ height: window.innerWidth >= 1024 ? `${bottomPanelHeight}%` : 'auto' }}
+                         >
                             <ConsoleComponent />
                             
                             {/* Variables Table */}
-                            <div className={`h-1/3 min-h-[150px] flex flex-col border-t ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-white border-slate-200'}`}>
+                            <div className={`h-1/3 min-h-[100px] flex flex-col border-t ${isDarkMode ? 'bg-[#0a1f13] border-emerald-900/30' : 'bg-white border-slate-200'}`}>
                                 <div className={`px-4 py-2 border-b flex items-center gap-2 shrink-0 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-slate-50 border-slate-200'}`}>
                                     <Bug size={14} className="text-amber-500" />
                                     <span className={`text-xs font-mono ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>{t.variables}</span>
