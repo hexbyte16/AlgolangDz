@@ -237,14 +237,15 @@ export const LearningMode: React.FC<LearningModeProps> = ({
          {/* LEFT PANE: Instructions */}
          <div 
             className={`
-                flex flex-col border-e overflow-y-auto custom-scrollbar relative z-10 
+                flex flex-col border-e relative z-10 
                 lg:h-full
                 h-[40%] border-b lg:border-b-0 
                 ${isDarkMode ? 'border-emerald-900/30 bg-[#0a1f13]' : 'border-slate-200 bg-slate-50'}
             `}
             style={{ width: window.innerWidth >= 1024 ? `${instructionsWidth}%` : '100%' }}
          >
-            <div className="p-8 pb-32">
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8">
                 <div className="mb-6 mt-6 lg:mt-0">
                     <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${isDarkMode ? 'bg-emerald-900/40 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>
                         {lessonContent.category}
@@ -260,8 +261,8 @@ export const LearningMode: React.FC<LearningModeProps> = ({
                 </div>
             </div>
             
-            {/* Sticky Action Bar */}
-            <div className={`absolute bottom-0 left-0 right-0 p-4 border-t backdrop-blur-xl transition-all ${isDarkMode ? 'bg-[#0f281a]/90 border-emerald-900/30' : 'bg-white/90 border-slate-200'}`}>
+            {/* Fixed Footer Action Bar */}
+            <div className={`p-4 border-t shrink-0 z-20 ${isDarkMode ? 'bg-[#0f281a] border-emerald-900/30' : 'bg-white border-slate-200'}`}>
                 {feedback && (
                     <div className={`mb-3 p-3 rounded-lg text-sm font-medium flex items-center gap-3 shadow-sm animate-in slide-in-from-bottom-2 ${feedback.success ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-100'}`}>
                         <div className={`p-1 rounded-full ${feedback.success ? 'bg-green-200 text-green-700' : 'bg-red-200 text-red-700'}`}>
