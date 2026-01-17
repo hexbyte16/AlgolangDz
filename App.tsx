@@ -14,7 +14,8 @@ const STORAGE_KEYS = {
   FILES: 'algolang_files_v1',
   ACTIVE_FILE: 'algolang_active_file_v1',
   THEME: 'algolang_theme_v1',
-  LANG: 'algolang_lang_v1'
+  LANG: 'algolang_lang_v1',
+  VIEW: 'algolang_view_v1'
 };
 
 const App: React.FC = () => {
@@ -30,7 +31,7 @@ const App: React.FC = () => {
   };
 
   // --- GLOBAL STATE ---
-  const [view, setView] = useState<ViewState>('home');
+  const [view, setView] = useState<ViewState>(() => loadState(STORAGE_KEYS.VIEW, 'home'));
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => loadState(STORAGE_KEYS.THEME, false));
   const [lang, setLang] = useState<'en' | 'ar'>(() => loadState(STORAGE_KEYS.LANG, 'en'));
   
@@ -75,6 +76,7 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.LANG, JSON.stringify(lang)); }, [lang]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.FILES, JSON.stringify(files)); }, [files]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.ACTIVE_FILE, JSON.stringify(activeFileId)); }, [activeFileId]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.VIEW, JSON.stringify(view)); }, [view]);
 
   // Sync Document Attributes
   useEffect(() => {
