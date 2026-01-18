@@ -1,3 +1,4 @@
+
 // --- LEXER TYPES ---
 
 export enum TokenType {
@@ -194,7 +195,7 @@ export interface ExecutionResult {
 
 // --- IDE TYPES ---
 
-export type ViewState = 'home' | 'ide' | 'docs' | 'learn';
+export type ViewState = 'home' | 'ide' | 'docs' | 'learn' | 'exam';
 
 export interface FileNode {
   id: string;
@@ -244,7 +245,9 @@ export interface Lesson {
     en: LessonContent;
     ar: LessonContent;
   };
-  initialCode: string;
+  // We keep generic initialCode for backwards compatibility, but Exam mode will use language specific ones
+  initialCode: string; 
+  initialCodeC?: string;
   // Validation returns bilingual feedback
-  validate: (code: string, output: string[]) => { success: boolean; message?: { en: string; ar: string } };
+  validate: (code: string, output: string[], language?: 'algo' | 'c') => { success: boolean; message?: { en: string; ar: string } };
 }

@@ -9,7 +9,9 @@ const KEYWORDS = [
   'For', 'To', 'Step', 'Do', 'EndFor', 
   'While', 'EndWhile', 
   'Read', 'Write', 
-  'Mod', 'Div', 'And', 'Or', 'Not', 'True', 'False'
+  'Mod', 'Div', 'And', 'Or', 'Not', 'True', 'False',
+  // C Keywords (Basic)
+  'int', 'float', 'char', 'void', 'return', 'include', 'stdio', 'printf', 'scanf', 'for', 'while', 'if', 'else', 'main'
 ];
 
 interface CodeEditorProps {
@@ -161,18 +163,33 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   // Process Lines for Rendering
   const renderedLines = useMemo(() => {
       return value.split('\n').map((line, i) => {
-         // Regex for syntax highlighting
-         const tokens = line.split(/((?:\/\/.*)|(?:\{[\s\S]*?\})|(?:"(?:[^"\\]|\\.)*")|(?:'(?:[^'\\]|\\.)*')|\b(?:Algorithm|Begin|End|Var|Const|If|Then|Else|EndIf|For|To|Step|Do|EndFor|While|EndWhile|Read|Write|Function|Procedure|Return)\b|\b(?:Integer|Real|Boolean|String|Character|Array|Of|Mod|Div|And|Or|Not|True|False)\b|\b\d+(?:\.\d+)?\b|[+\-*/←:\[\](),=<>]|:=|<-)/gi);
+         // Mixed Regex for Algo and C syntax highlighting
+         const tokens = line.split(/((?:\/\/.*)|(?:\/\*[\s\S]*?\*\/)|(?:#include.*)|(?:\{[\s\S]*?\})|(?:"(?:[^"\\]|\\.)*")|(?:'(?:[^'\\]|\\.)*')|\b(?:Algorithm|Begin|End|Var|Const|If|Then|Else|EndIf|For|To|Step|Do|EndFor|While|EndWhile|Read|Write|Function|Procedure|Return)\b|\b(?:int|float|char|void|double|long|return|printf|scanf|if|else|while|for)\b|\b(?:Integer|Real|Boolean|String|Character|Array|Of|Mod|Div|And|Or|Not|True|False)\b|\b\d+(?:\.\d+)?\b|[+\-*/←:\[\](),=<>{}%;&]|:=|<-)/gi);
          
          const renderedTokens = tokens.map((part, idx) => {
             if (!part) return null;
             let colorClass = isDarkMode ? "text-slate-200" : "text-slate-800"; 
-            if (/^(\/\/|\{)/.test(part)) colorClass = isDarkMode ? "text-emerald-600/70 italic" : "text-slate-400 italic"; 
+            
+            // Comments (Algo // and C // or #include)
+            if (/^(\/\/|\{)|#include/.test(part)) colorClass = isDarkMode ? "text-emerald-600/70 italic" : "text-slate-400 italic"; 
+            
+            // Strings
             else if (/^["']/.test(part)) colorClass = isDarkMode ? "text-green-400" : "text-green-600"; 
+            
+            // Algo Keywords
             else if (/^(Algorithm|Begin|End|Var|Const|If|Then|Else|EndIf|For|To|Step|Do|EndFor|While|EndWhile|Read|Write|Function|Procedure|Return)$/i.test(part)) colorClass = isDarkMode ? "text-purple-400 font-bold" : "text-purple-700 font-bold";
+            
+            // C Keywords
+            else if (/^(int|float|char|void|double|long|return|printf|scanf|if|else|while|for)$/.test(part)) colorClass = isDarkMode ? "text-blue-400 font-bold" : "text-blue-700 font-bold";
+
+            // Types & Bools
             else if (/^(Integer|Real|Boolean|String|Character|Array|Of|Mod|Div|And|Or|Not|True|False)$/i.test(part)) colorClass = isDarkMode ? "text-amber-400" : "text-amber-600 font-semibold";
+            
+            // Numbers
             else if (/^\d/.test(part)) colorClass = isDarkMode ? "text-blue-300" : "text-blue-600";
-            else if (/^[+\-*/←:\[\](),=<>]|:=|<-/.test(part)) colorClass = isDarkMode ? "text-pink-400" : "text-red-500";
+            
+            // Operators & Punctuation
+            else if (/^[+\-*/←:\[\](),=<>{}%;&]|:=|<-/.test(part)) colorClass = isDarkMode ? "text-pink-400" : "text-red-500";
             
             return <span key={idx} className={colorClass}>{part}</span>;
          });

@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Trash2, AlertTriangle, Terminal, Pause, StepForward, Bug, Sun, Moon, Home, FolderOpen, Book, RotateCcw, Languages, GraduationCap, Menu, X, GripVertical, GripHorizontal } from 'lucide-react';
+import { Play, Trash2, AlertTriangle, Terminal, Pause, StepForward, Bug, Sun, Moon, Home, FolderOpen, Book, RotateCcw, Languages, GraduationCap, Menu, X, GripVertical, GripHorizontal, Award } from 'lucide-react';
 import { Lexer } from './services/algo/lexer';
 import { Parser } from './services/algo/parser';
 import { Interpreter } from './services/algo/interpreter';
 import { INITIAL_FILES, TRANSLATIONS, LESSONS } from './constants';
+import { EXAM_LESSONS } from './constants_exam';
 import { CodeEditor } from './components/CodeEditor';
 import { InterpreterEvent, RuntimeValue, ViewState, FileNode } from './types';
 import { Landing } from './components/Landing';
 import { Docs } from './components/Docs';
 import { FileExplorer } from './components/FileExplorer';
 import { LearningMode } from './components/LearningMode';
+import { ExamMode } from './components/ExamMode';
 
 const STORAGE_KEYS = {
   FILES: 'algolang_files_v1',
@@ -18,7 +20,9 @@ const STORAGE_KEYS = {
   LANG: 'algolang_lang_v1',
   VIEW: 'algolang_view_v1',
   COMPLETED_LESSONS: 'algolang_completed_lessons_v1',
-  CURRENT_LESSON: 'algolang_current_lesson_v1'
+  CURRENT_LESSON: 'algolang_current_lesson_v1',
+  COMPLETED_EXAMS: 'algolang_completed_exams_v1',
+  CURRENT_EXAM: 'algolang_current_exam_v1'
 };
 
 const App: React.FC = () => {
@@ -41,6 +45,10 @@ const App: React.FC = () => {
   // --- LEARNING STATE ---
   const [completedLessons, setCompletedLessons] = useState<string[]>(() => loadState(STORAGE_KEYS.COMPLETED_LESSONS, []));
   const [currentLessonId, setCurrentLessonId] = useState<string>(() => loadState(STORAGE_KEYS.CURRENT_LESSON, 'l1'));
+
+  // --- EXAM STATE ---
+  const [completedExamLessons, setCompletedExamLessons] = useState<string[]>(() => loadState(STORAGE_KEYS.COMPLETED_EXAMS, []));
+  const [currentExamLessonId, setCurrentExamLessonId] = useState<string>(() => loadState(STORAGE_KEYS.CURRENT_EXAM, 'ex_str_1'));
 
   // --- FILE SYSTEM STATE ---
   const [files, setFiles] = useState<FileNode[]>(() => loadState(STORAGE_KEYS.FILES, INITIAL_FILES));
@@ -97,6 +105,8 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.VIEW, JSON.stringify(view)); }, [view]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.COMPLETED_LESSONS, JSON.stringify(completedLessons)); }, [completedLessons]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.CURRENT_LESSON, JSON.stringify(currentLessonId)); }, [currentLessonId]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.COMPLETED_EXAMS, JSON.stringify(completedExamLessons)); }, [completedExamLessons]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.CURRENT_EXAM, JSON.stringify(currentExamLessonId)); }, [currentExamLessonId]);
 
   // Sync Document Attributes
   useEffect(() => {
@@ -172,12 +182,27 @@ const App: React.FC = () => {
         setErrors([]);
     }
   };
+
+  // Switch Exam Lesson
+  const handleExamLessonSelect = (id: string) => {
+    setCurrentExamLessonId(id);
+    const lesson = EXAM_LESSONS.find(l => l.id === id);
+    if (lesson) {
+        setCode(lesson.initialCode);
+        stopExecution();
+        setOutput([]);
+        setErrors([]);
+    }
+  };
   
   // When switching views, restore appropriate code context
   const handleViewChange = (newView: ViewState) => {
       stopExecution();
       if (newView === 'learn') {
           const lesson = LESSONS.find(l => l.id === currentLessonId) || LESSONS[0];
+          setCode(lesson.initialCode);
+      } else if (newView === 'exam') {
+          const lesson = EXAM_LESSONS.find(l => l.id === currentExamLessonId) || EXAM_LESSONS[0];
           setCode(lesson.initialCode);
       } else if (newView === 'ide') {
           const file = files.find(f => f.id === activeFileId);
@@ -423,6 +448,10 @@ const App: React.FC = () => {
             <GraduationCap size={22} />
         </button>
 
+        <button onClick={() => handleViewChange('exam')} className={`p-2 rounded-xl transition-all ${view === 'exam' ? 'bg-gradient-to-br from-amber-600 to-amber-500 text-white shadow-lg' : (isDarkMode ? 'text-slate-400 hover:text-amber-500' : 'text-slate-400 hover:text-amber-600')}`} title={lang === 'ar' ? 'تحضير للامتحان' : 'Exam Prep'}>
+            <Award size={22} />
+        </button>
+
         <button onClick={() => handleViewChange('docs')} className={`p-2 rounded-xl transition-all ${view === 'docs' ? 'bg-emerald-100 text-emerald-600' : (isDarkMode ? 'text-slate-400 hover:text-emerald-500' : 'text-slate-400 hover:text-emerald-600')}`} title={t.docs}>
             <Book size={22} />
         </button>
@@ -507,6 +536,30 @@ const App: React.FC = () => {
                 >
                     <ConsoleComponent />
                 </LearningMode>
+            </div>
+        )}
+        
+        {/* VIEW: EXAM */}
+        {view === 'exam' && (
+             <div className="h-full w-full overflow-hidden">
+                <ExamMode
+                    completedExamLessons={completedExamLessons}
+                    currentExamLessonId={currentExamLessonId}
+                    onSelectLesson={handleExamLessonSelect}
+                    onCompleteLesson={(id) => setCompletedExamLessons(prev => [...prev, id])}
+                    code={code}
+                    setCode={handleCodeChange}
+                    output={output}
+                    onRun={startExecution}
+                    onStop={stopExecution}
+                    onConsoleLog={(lines) => setOutput(prev => [...prev, ...lines])}
+                    onClearConsole={() => { setOutput([]); setErrors([]); }}
+                    isRunning={isRunning}
+                    isDarkMode={isDarkMode}
+                    lang={lang}
+                >
+                    <ConsoleComponent />
+                </ExamMode>
             </div>
         )}
 
